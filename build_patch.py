@@ -2,7 +2,7 @@ from pathlib import Path
 
 p = Path("dist/index.html")
 s = p.read_text(encoding="utf-8")
-s = s.replace("Prototype 0.14", "Prototype 0.16")
+s = s.replace("Prototype 0.14", "Prototype 0.16")\ns = s.replace("Prototype 0.16", "Prototype 0.17")
 
 old = 'function showScreen(id){["titleScreen","characterScreen","lifeSetupScreen","gameScreen"].forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id))}'
 new = 'function showScreen(id){["titleScreen","characterScreen","traitScreen","companionScreen","lifeSetupScreen","gameScreen"].forEach(x=>{const el=document.getElementById(x);if(el)el.classList.toggle("hidden",x!==id)})}'
@@ -42,12 +42,12 @@ npc_patch = r"""<script>
  const log=t=>{const e=document.querySelector("#log,.log,#recentLog,.recent-log,[data-role='log']");if(e){const d=document.createElement("div");d.textContent=t;e.appendChild(d);e.scrollTop=e.scrollHeight}};
  const clearLap=()=>{onLap=false;document.querySelectorAll("*").forEach(e=>{if(!e.children.length&&/坐在你腿上|趴在你腿上|睡在你腿上|腿边/.test(e.textContent||""))e.textContent=(e.textContent||"").replace(/[^。；]*(?:坐在你腿上|趴在你腿上|睡在你腿上|腿边)[^。；]*/g,"")})};
  document.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const t=(b.textContent||"").trim();
-  if(/起身|站起来|离开沙发/.test(t)){sitting=false;onSofa=false;clearLap();log(npc()+"从你身边让开了。你起身后，它也重新决定自己要待在哪里。");setTimeout(clearLap,30)}
-  if(/坐在沙发上/.test(t)&&!/继续|保持/.test(t)){sitting=true;onLap=false;if(Math.random()<.28){onSofa=true;setTimeout(()=>log(npc()+pick(L.sofa)),40)}else{onSofa=false;setTimeout(()=>log(npc()+"没有立刻过来。"+pick(L.idle)),40)}}
-  if(/继续坐|再坐|坐着|休息10分钟|待10分钟/.test(t)&&sitting){const r=Math.random();if(onSofa&&!onLap&&r<.18){onLap=true;log(npc()+"靠近了一些，踩过你的腿，最后在你腿上伏了下来。")}else if(!onSofa&&r<.30){onSofa=true;log(npc()+pick(L.approach))}else log(npc()+pick(L.idle))}
+  if(/起身|站起来|离开沙发/.test(t)){sitting=false;onSofa=false;document.getElementById("callShelterNpcBtn")?.remove();clearLap();log("你离开了沙发。");setTimeout(clearLap,30)}
+  if(/坐在沙发上/.test(t)&&!/继续|保持/.test(t)){sitting=true;onLap=false;onSofa=false;setTimeout(()=>{if(typeof window.advance==="function")window.advance(30);log("你在沙发上休息了30分钟。");refresh();},0)}
+  if(/继续坐|再坐|坐着|休息10分钟|待10分钟/.test(t)&&sitting){const r=Math.random();if(onSofa&&!onLap&&r<.18){onLap=true;log(npc()+"靠近了一些，踩过你的腿，最后在你腿上伏了下来。")}else if(!onSofa&&r<.22){onSofa=true;log(npc()+pick(L.approach))}else if(r<.55){log(npc()+pick(L.idle))}else{log("你继续坐在沙发上，没有发生什么特别的事。")}}
  },true);
  const refresh=()=>{const bs=[...document.querySelectorAll("button")],stand=bs.find(b=>/起身|站起来|离开沙发/.test(b.textContent||"")),old=document.getElementById("callShelterNpcBtn");if(!stand||!sitting){old?.remove();return}if(old){const label="呼唤："+npc();if(old.textContent!==label)old.textContent=label;return}const b=document.createElement("button");b.id="callShelterNpcBtn";b.textContent="呼唤："+npc();b.onclick=()=>{if(onSofa)log(npc()+"已经在沙发上了。它听见你叫它，只是抬头看了你一眼。");else{const near=Math.random()<.55;onSofa=true;log(npc()+pick(near?L.near:L.approach))}};stand.parentElement?.insertBefore(b,stand)};
- setInterval(refresh,800);
+ 
 })();
 </script>"""
 s = s.replace("</body>", npc_patch + "\n</body>", 1)
