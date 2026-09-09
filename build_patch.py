@@ -2,7 +2,8 @@ from pathlib import Path
 
 p = Path("dist/index.html")
 s = p.read_text(encoding="utf-8")
-s = s.replace("Prototype 0.14", "Prototype 0.16")\ns = s.replace("Prototype 0.16", "Prototype 0.17")
+s = s.replace("Prototype 0.14", "Prototype 0.16")
+s = s.replace("Prototype 0.16", "Prototype 0.17")
 
 old = 'function showScreen(id){["titleScreen","characterScreen","lifeSetupScreen","gameScreen"].forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id))}'
 new = 'function showScreen(id){["titleScreen","characterScreen","traitScreen","companionScreen","lifeSetupScreen","gameScreen"].forEach(x=>{const el=document.getElementById(x);if(el)el.classList.toggle("hidden",x!==id)})}'
