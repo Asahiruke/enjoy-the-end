@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          base64 -d site.html.gz.b64 | gunzip > dist/index.html
+          cat site.part00 site.part01 site.part02 site.part03 site.part04 site.part05 | base64 -d | gunzip > dist/index.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
