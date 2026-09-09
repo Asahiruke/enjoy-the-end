@@ -46,7 +46,7 @@ npc_patch = r"""<script>
   if(/坐在沙发上/.test(t)&&!/继续|保持/.test(t)){sitting=true;onLap=false;if(Math.random()<.28){onSofa=true;setTimeout(()=>log(npc()+pick(L.sofa)),40)}else{onSofa=false;setTimeout(()=>log(npc()+"没有立刻过来。"+pick(L.idle)),40)}}
   if(/继续坐|再坐|坐着|休息10分钟|待10分钟/.test(t)&&sitting){const r=Math.random();if(onSofa&&!onLap&&r<.18){onLap=true;log(npc()+"靠近了一些，踩过你的腿，最后在你腿上伏了下来。")}else if(!onSofa&&r<.30){onSofa=true;log(npc()+pick(L.approach))}else log(npc()+pick(L.idle))}
  },true);
- const refresh=()=>{const bs=[...document.querySelectorAll("button")],stand=bs.find(b=>/起身|站起来|离开沙发/.test(b.textContent||"")),old=document.getElementById("callShelterNpcBtn");if(!stand||!sitting){old?.remove();return}if(old){old.textContent="呼唤："+npc();return}const b=document.createElement("button");b.id="callShelterNpcBtn";b.textContent="呼唤："+npc();b.onclick=()=>{if(onSofa)log(npc()+"已经在沙发上了。它听见你叫它，只是抬头看了你一眼。");else{const near=Math.random()<.55;onSofa=true;log(npc()+pick(near?L.near:L.approach))}};stand.parentElement?.insertBefore(b,stand)};
+ const refresh=()=>{const bs=[...document.querySelectorAll("button")],stand=bs.find(b=>/起身|站起来|离开沙发/.test(b.textContent||"")),old=document.getElementById("callShelterNpcBtn");if(!stand||!sitting){old?.remove();return}if(old){const label="呼唤："+npc();if(old.textContent!==label)old.textContent=label;return}const b=document.createElement("button");b.id="callShelterNpcBtn";b.textContent="呼唤："+npc();b.onclick=()=>{if(onSofa)log(npc()+"已经在沙发上了。它听见你叫它，只是抬头看了你一眼。");else{const near=Math.random()<.55;onSofa=true;log(npc()+pick(near?L.near:L.approach))}};stand.parentElement?.insertBefore(b,stand)};
  new MutationObserver(refresh).observe(document.body,{childList:true,subtree:true});setInterval(refresh,1200);
 })();
 </script>"""
