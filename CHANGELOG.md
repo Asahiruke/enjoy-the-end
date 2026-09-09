@@ -1,5 +1,14 @@
 # Enjoy the End — Update Log
 
+## 2026-09-10 — Prototype 0.17: persistent sofa resting
+
+- Sitting on a sofa is now a 30-minute resting action.
+- The player remains seated after the action finishes until explicitly choosing to leave the sofa.
+- The “呼唤：NPC名” button is created only after the player sits down.
+- Removed periodic polling for sofa-state/button detection.
+- Sitting down no longer forces an immediate companion response; NPC movement remains governed by reaction events and hourly autonomy.
+- Leaving the sofa immediately clears the seated state, call button, and lap-related companion state.
+
 ## 2026-09-10 — Prototype 0.16: generic hourly NPC autonomy
 
 ### NPC autonomous tick
