@@ -1,5 +1,30 @@
 # Enjoy the End — Update Log
 
+## 2026-09-10 — Prototype 0.16: generic hourly NPC autonomy
+
+### NPC autonomous tick
+- Added a generic NPC autonomy framework that evaluates autonomous behaviour once per crossed in-game hour.
+- Immediate reactions such as calling an NPC or standing up while an animal is on the player's lap remain event-driven instead of waiting for the hourly tick.
+- Long time skips are processed hour-by-hour with a safety cap to avoid runaway processing.
+
+### Furniture / scene interaction architecture
+- Furniture interactions now begin with an NPC-type gate: person / animal.
+- Rules then narrow to a subtype or species such as human, cat, dog, or bird.
+- Scene rules currently cover sofa, cabinet tops, windows, beds, and open floor space.
+- The same scene can expose different actions to humans and animals instead of being hard-coded only for cats.
+
+### Personality domains
+- Human and animal personality data are now separated.
+- Fixed human NPCs can define stable human personality tags such as quiet, sociable, orderly, cautious, or restless.
+- Animals use a separate personality pool such as curious, independent, timid, energetic, sleepy, playful, affectionate, alert, or calm.
+- Randomly encountered animals can roll personalities from the animal domain, while custom companions remain compatible with hand-authored personality data.
+
+### Behaviour weighting
+- The hourly decision model prefers keeping the current action, then local activity, room movement, approaching the player, or a special behaviour.
+- Personality modifies these weights.
+- Sleep/rest actions can reserve more than one hour so NPCs do not appear to teleport between activities every tick.
+- Autonomous activity updates world/entity state without automatically flooding the recent-log panel.
+
 ## 2026-09-10 — Prototype 0.14: cat customization & sofa interactions
 
 ### Cat customization
