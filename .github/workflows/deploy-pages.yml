@@ -29,7 +29,7 @@ jobs:
         run: |
           mkdir -p dist
           cat site.part00 site.part01 site.part02 site.part03 site.part04 site.part05 | base64 -d | gunzip > dist/index.html
-          python3 build_patch.py
+          test -s dist/index.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

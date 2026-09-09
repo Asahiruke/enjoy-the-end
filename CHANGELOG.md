@@ -1,21 +1,35 @@
 # Enjoy the End — Update Log
 
-## 2026-09-09 — Prototype 0.12: character wording & mobile focus
+## 2026-09-10 — Prototype 0.14: cat customization & sofa interactions
+
+### Cat customization
+- Expanded the companion cat creator without using real-world breed names.
+- Added fur length, base coat color, coat pattern, white-area distribution, facial markings, eye color, body shape, tail appearance, ear details, nose color, and paw-pad color.
+- Coat patterns now include cat-like options such as tabby, fine-striped tabby, classic swirls, spotted markings, tortoiseshell-like markings, tricolor markings, and shaded coats.
+- Companion preview text is generated from the selected visual traits.
+
+### Cat room life
+- Added simple room-life text for the companion cat, including wandering around the room, inspecting cabinets, grooming, walking past the player, and using a sofa when one is available.
+- Companion cats remain part of the NPC/entity framework rather than a separate decorative pet system.
+
+### Sofa interaction
+- Rooms with a sofa can now offer “sit on the sofa”.
+- While sitting, the player can choose to remain seated for 10 minutes or stand up.
+- A companion cat in the same room may probabilistically sit beside the player or climb onto the player's lap.
+- If the player remains seated, a cat on the lap may eventually fall asleep.
+- When the cat is within reach, additional interactions become available: pet the forehead, scratch the chin, stroke the back, or touch the paws.
 
 ### Character creation
-- Replaced “性别” with “外表气质”: 男性化 / 中性 / 女性化.
-- Replaced “体重 / 体型” with “体格”: 纤细 / 匀称 / 壮实.
-- Rewrote mirror preview generation so it produces natural prose instead of mechanically repeating values such as “中等”.
-- Added a reserved “身体特征” section for 胸部轮廓、男性身体特征、女性身体特征.
-- Reserved body-feature data does not enter ordinary mirror or outward-appearance descriptions.
-
-### Mobile play layout
-- Mobile gameplay now keeps the immediate page focused on 房间描述、身体与心理状态、近期记录.
-- 房间描述 now includes a concise weather/environment line and is prepared to include visible NPC activity in the same area.
-- 房间互动、行动、家中储备、容器、天气预报、外出装备、世界状况 are moved behind dedicated view buttons on narrow screens.
-- Secondary views open as full-screen mobile panels and can be closed back to the core gameplay view.
+- The hidden body-feature controls remain removed from the visible character creator.
+- Character appearance continues to use “你看起来像：男性化 / 中性 / 女性化”.
+- Attribute and trait creation from Prototype 0.13 remains included.
 
 ### Deployment repair
-- Repaired the invalid GitHub Actions YAML that caused runs #10 and #11 to fail before jobs started.
-- Moved HTML transformation logic into a standalone build_patch.py file, keeping the workflow itself small and valid.
-- Deployment continues to build from the existing compressed prototype source and publishes through GitHub Pages.
+- Removed the fragile build-time patch script from deployment.
+- GitHub Pages now rebuilds the final Prototype 0.14 HTML directly from the stored compressed source chunks.
+- The build verifies that dist/index.html exists and is non-empty before deployment.
+
+## 2026-09-09 — Prototype 0.12: character wording & mobile focus
+
+- Reworked outward appearance wording and compact mobile layout.
+- Mobile gameplay prioritizes room description, character status, and recent log, while larger systems sit behind dedicated views.
