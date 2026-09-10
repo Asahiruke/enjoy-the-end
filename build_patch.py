@@ -319,3 +319,70 @@ s = s.replace("</body>", autonomy_patch + "\n</body>", 1)
 
 # Final write must occur after every injected runtime patch.
 p.write_text(s, encoding="utf-8")
+
+
+# Prototype 0.18 — trait screen layout cleanup.
+trait_layout_patch = r"""<style>
+/* Trait builder: stop cards/checkboxes from colliding at desktop and mobile widths. */
+#traitScreen .title-card{max-width:820px;width:min(92vw,820px);box-sizing:border-box}
+#traitScreen .trait-list,#traitScreen #traitList{display:grid;grid-template-columns:1fr;gap:10px;width:100%}
+#traitScreen .trait-card,
+#traitScreen label:has(input[type="checkbox"]){
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:34px minmax(0,1fr) auto!important;
+  grid-template-rows:auto auto!important;
+  align-items:start!important;
+  column-gap:12px!important;
+  row-gap:4px!important;
+  width:100%!important;
+  min-height:82px!important;
+  padding:14px 16px!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+#traitScreen .trait-card input[type="checkbox"],
+#traitScreen label:has(input[type="checkbox"]) input[type="checkbox"]{
+  position:static!important;
+  grid-column:1!important;
+  grid-row:1 / span 2!important;
+  align-self:center!important;
+  width:20px!important;height:20px!important;
+  margin:0!important;
+}
+#traitScreen .trait-card .trait-name,
+#traitScreen label:has(input[type="checkbox"]) b,
+#traitScreen label:has(input[type="checkbox"]) strong{
+  grid-column:2!important;grid-row:1!important;
+  min-width:0!important;text-align:left!important;
+}
+#traitScreen .trait-card .trait-desc,
+#traitScreen label:has(input[type="checkbox"]) .small,
+#traitScreen label:has(input[type="checkbox"]) small{
+  grid-column:2!important;grid-row:2!important;
+  min-width:0!important;text-align:left!important;
+  line-height:1.45!important;
+}
+#traitScreen .trait-card .trait-cost,
+#traitScreen label:has(input[type="checkbox"]) .cost{
+  grid-column:3!important;grid-row:1 / span 2!important;
+  align-self:center!important;
+  white-space:nowrap!important;
+  text-align:right!important;
+}
+@media(max-width:600px){
+  #traitScreen .title-card{width:94vw;padding:16px 12px}
+  #traitScreen .trait-card,
+  #traitScreen label:has(input[type="checkbox"]){
+    grid-template-columns:28px minmax(0,1fr) auto!important;
+    column-gap:9px!important;
+    padding:12px 10px!important;
+    min-height:78px!important;
+  }
+  #traitScreen .trait-card .trait-cost,
+  #traitScreen label:has(input[type="checkbox"]) .cost{font-size:.9em}
+}
+</style>"""
+s = s.replace("</head>", trait_layout_patch + "\n</head>", 1)
+p.write_text(s, encoding="utf-8")
