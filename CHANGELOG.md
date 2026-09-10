@@ -1,5 +1,22 @@
 # Enjoy the End — Update Log
 
+## 2026-09-10 — Prototype 0.19: title settings, expanded traits & room vocabulary
+
+### Title settings
+- Added a Settings entry to the title screen so font size can be adjusted before creating or loading a character.
+- The title-screen font control shares the same saved font-scale preference as in-game Settings.
+
+### Character traits
+- Expanded the positive trait pool with endurance, first-aid knowledge, observation, direction sense, sleep quality, and animal affinity.
+- Expanded negative traits with poor endurance, clumsy hands, sensitive stomach, picky eating, stress sensitivity, poor direction sense, fear of darkness, sleepiness, social dependence, and loner tendencies.
+- Direction, sleep-quality, social-style and vision traits use exclusive groups where appropriate so contradictory tiers/styles cannot be stacked.
+- Kept the 12-point starting pool to make positive traits require meaningful trade-offs.
+
+### Room-description groundwork
+- Audited the current room-description direction and added a data-driven vocabulary registry for living room, bedroom, kitchen, bathroom, entrance, corridor and storage areas.
+- Added vocabulary hooks for clutter/organization, darkness, temperature, power/water loss, food stock, security, outside noise and storage fullness.
+- These entries are groundwork for composition with weather, utilities, renovations, placed items and NPC activity rather than hard-coded replacement paragraphs.
+
 ## 2026-09-10 — Prototype 0.18: title placeholder, denser traits & font scaling
 
 ### Title
