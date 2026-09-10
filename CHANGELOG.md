@@ -1,5 +1,22 @@
 # Enjoy the End — Update Log
 
+## 2026-09-10 — Prototype 0.18: title placeholder, denser traits & font scaling
+
+### Title
+- Replaced the visible “末日室内生存” title with a blank placeholder while preserving its layout space.
+- Browser title now uses Enjoy the End instead of the temporary Chinese title.
+
+### Character traits
+- Reduced the initial shared creation-point pool from 30 to 12.
+- Trait cards use a denser two-column layout on wider screens and fall back to one column on narrow phones.
+- Added negative traits for light / medium / severe myopia, with only one myopia tier selectable at a time.
+- Added alcohol, nicotine, and caffeine addiction traits as negative traits that return creation points.
+- New negative traits are represented as tags so later survival, withdrawal, perception and item-use systems can read them.
+
+### Settings
+- Added a font-size slider to Settings, ranging from 80% to 140%.
+- Font size is remembered locally and is reapplied when starting or loading a game.
+
 ## 2026-09-10 — Prototype 0.17: persistent sofa resting
 
 - Sitting on a sofa is now a 30-minute resting action.
