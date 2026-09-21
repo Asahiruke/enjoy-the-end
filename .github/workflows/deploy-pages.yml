@@ -33,6 +33,7 @@ jobs:
           python3 build_patch_018.py
           python3 build_patch_020.py
           python3 build_patch_021.py
+          python3 build_patch_022.py
           test -s dist/index.html
 
       - name: Configure Pages
