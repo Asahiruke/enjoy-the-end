@@ -1,19 +1,15 @@
 name: Deploy Enjoy the End
-
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
   pages: write
   id-token: write
-
 concurrency:
   group: pages
   cancel-in-progress: true
-
 jobs:
   deploy:
     environment:
@@ -23,7 +19,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Build static site
         shell: bash
         run: |
@@ -34,18 +29,16 @@ jobs:
           python3 build_patch_020.py
           python3 build_patch_021.py
           python3 build_patch_022.py
+          python3 build_patch_023.py
           test -s dist/index.html
-
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
