@@ -1,0 +1,38 @@
+name: Refactor audit
+on:
+  push:
+    branches: [refactor/action-core-cleanup]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build audit target
+        shell: bash
+        run: |
+          mkdir -p dist
+          cat site.part00 site.part01 site.part02 site.part03 site.part04 site.part05 | base64 -d | gunzip > dist/index.html
+          python3 build_patch.py
+          python3 build_patch_018.py
+          python3 build_patch_020.py
+          python3 build_patch_021.py
+          python3 build_patch_022.py
+          python3 build_patch_023.py
+          python3 build_patch_024.py
+          python3 build_cleanup_025.py
+      - name: Action audit
+        shell: bash
+        run: |
+          echo '=== advance calls ==='
+          grep -nE 'advance\(' dist/index.html || true
+          echo '=== legacy timers ==='
+          grep -nE 'setInterval|setTimeout' dist/index.html || true
+          echo '=== inline buttons ==='
+          grep -nE '<button[^>]*(onclick|data-action-id)' dist/index.html || true
+          echo '=== logging calls ==='
+          grep -nE 'addLog\(|logEvent\(|pushLog\(' dist/index.html || true
+          echo '=== draft references ==='
+          grep -nE 'characterDraft|pendingCharacter' dist/index.html || true
