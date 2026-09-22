@@ -78,8 +78,9 @@ s=re.sub(r'function buy\\(id,p\\)\\{.*?\\n', 'function buy(id,p){return actionPu
 
 # Delete obsolete business-action implementations after their controls have been migrated.
 # Patterns intentionally avoid backslash-heavy regex so this patch remains readable.
-for name in ["staySeated","sitOnSofa","standUpFromSofa","cook","groom","shower","sleep","buy"]:
+for name in ["staySeated","sitOnSofa","standUpFromSofa","cook"]:
     s=re.sub(r'function '+name+r'[(][^)]*[)][{].*?^}', '', s, flags=re.S|re.M)
+s=re.sub(r'^function (?:groom|shower|sleep|buy)[^\n]*\n', '', s, flags=re.M)
 
 runtime=r'''<script id="ete-025-core">
 (()=>{
