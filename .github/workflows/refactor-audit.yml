@@ -26,13 +26,13 @@ jobs:
       - name: Action audit
         shell: bash
         run: |
-          echo '=== core action source ==='\n          sed -n '1035,1220p' dist/index.html\n          echo '=== sofa legacy source ==='\n          grep -n -A45 -B5 'function sitOnSofa' dist/index.html || true\n          echo '=== advance calls ==='
+          echo '=== sofa legacy source ==='
+          grep -n -A45 -B5 'function sitOnSofa' dist/index.html || true
+          echo '=== advance calls ==='
           grep -nE 'advance\(' dist/index.html || true
           echo '=== legacy timers ==='
           grep -nE 'setInterval|setTimeout' dist/index.html || true
-          echo '=== inline buttons ==='
-          grep -nE '<button[^>]*(onclick|data-action-id)' dist/index.html || true
-          echo '=== logging calls ==='
-          grep -nE 'addLog\(|logEvent\(|pushLog\(' dist/index.html || true
-          echo '=== draft references ==='
-          grep -nE 'characterDraft|pendingCharacter' dist/index.html || true
+          echo '=== world inline action candidates ==='
+          grep -nE 'onclick="[^"]*(advance|sleep|shower|groom|cook|wear|buy|sitOnSofa|standUpFromSofa|petCat)' dist/index.html || true
+          echo '=== action ids ==='
+          grep -oE 'data-action-id="[^"]+"' dist/index.html | sort | uniq -c || true
