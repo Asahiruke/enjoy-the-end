@@ -34,5 +34,7 @@ jobs:
           grep -nE 'setInterval|setTimeout' dist/index.html || true
           echo '=== world inline action candidates ==='
           grep -nE 'onclick="[^"]*(advance|sleep|shower|groom|cook|wear|buy|sitOnSofa|standUpFromSofa|petCat)' dist/index.html || true
-          echo '=== draft references ==='\n          grep -nE 'pendingCharacter|characterDraft|ETE_CHARACTER_DRAFT' dist/index.html || true\n          echo '=== trait definitions ==='\n          grep -nE 'good_endurance|poor_endurance|耐力良好|耐力不足|exclusiveGroup' dist/index.html || true\n          echo '=== action ids ==='
+          echo '=== draft references ==='\n          grep -nE 'pendingCharacter|characterDraft|ETE_CHARACTER_DRAFT' dist/index.html || true\n          echo '=== trait definitions ==='\n          grep -nE 'good_endurance|poor_endurance|耐力良好|耐力不足|exclusiveGroup' dist/index.html || true\n          echo '=== character source blocks ==='
+          grep -n -A20 -B8 -E 'pendingCharacter|characterDraft|TRAIT_DEFS|finishCharacter|startGame|lifeSetup|characterReview' dist/index.html || true
+          echo '=== action ids ==='
           grep -oE 'data-action-id="[^"]+"' dist/index.html | sort | uniq -c || true
