@@ -75,6 +75,12 @@ s=re.sub(r'function shower\\(\\)\\{.*?\\n', 'function shower(){return actionShow
 s=re.sub(r'function sleep\\(\\)\\{.*?\\n', 'function sleep(){return actionSleep()}\\n', s)
 s=re.sub(r'function buy\\(id,p\\)\\{.*?\\n', 'function buy(id,p){return actionPurchase(id,p)}\\n', s)
 
+
+# Delete obsolete business-action implementations after their controls have been migrated.
+# Patterns intentionally avoid backslash-heavy regex so this patch remains readable.
+for name in ["staySeated","sitOnSofa","standUpFromSofa","cook","groom","shower","sleep","buy"]:
+    s=re.sub(r'function '+name+r'[(][^)]*[)][{].*?^}', '', s, flags=re.S|re.M)
+
 runtime=r'''<script id="ete-025-core">
 (()=>{
 'use strict';
@@ -202,6 +208,8 @@ window.addEventListener('ete:save-loaded',()=>{NPC.installClock();NPC.seed()});
 
 /* ---------- World effects: no time advancement and no action-owned log calls ---------- */
 Action.handle('room_move',({roomId})=>{if(!roomId)return;G.currentRoom=roomId;closeStation?.()});
+Action.handle('sit_down',()=>{if(!roomHasSofa?.())return;G.playerPose={type:'sitting',target:'sofa',since:{year:G.year,month:G.month,day:G.day,hour:G.hour,minute:G.minute}};if(typeof maybeCatJoin==='function')maybeCatJoin(false)});
+Action.handle('stand_up',()=>{const cat=typeof getFavoriteCat==='function'?getFavoriteCat():null;if(cat?.onLap){cat.onLap=false;cat.nearPlayer=true;cat.sleeping=false;cat.currentAction='被你起身惊醒，留在沙发边'}G.playerPose=null});
 Action.handle('room_move_stairs',({roomId})=>{if(!roomId)return;G.currentRoom=roomId;closeStation?.()});
 Action.handle('work_shift',()=>{G.money+=JOBS[G.job].pay});
 Action.handle('outing_walk',()=>{});\nAction.handle('pet_animal',({petStyle})=>{if(typeof petCat==='function')petCat(petStyle||'head')});
