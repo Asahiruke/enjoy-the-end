@@ -4,6 +4,8 @@ import re
 p=Path("dist/index.html")
 s=p.read_text(encoding="utf-8")
 s=s.replace("Prototype 0.24","Prototype 0.25-dev")
+s=s.replace('{id:"good_endurance",name:"耐力良好",cost:5,', '{id:"good_endurance",name:"耐力良好",cost:5,exclusiveGroup:"endurance",')
+s=s.replace('{id:"poor_endurance",name:"耐力不足",cost:-5,', '{id:"poor_endurance",name:"耐力不足",cost:-5,exclusiveGroup:"endurance",')
 
 # Remove obsolete runtime generations before the browser ever sees them.
 for script_id in [
@@ -88,15 +90,51 @@ runtime=r'''<script id="ete-025-core">
 
 /* ---------- Character draft: one authoritative creation object ---------- */
 const CharacterDraft=window.ETE_CHARACTER_DRAFT={
-  get value(){
-    if(!window.pendingCharacter) window.pendingCharacter={};
-    return window.pendingCharacter;
+  data:null,
+  create(seed={}){ this.data={tags:[],personalityTags:[],skills:{},clothingTags:[],...seed}; return this.data; },
+  ensure(){ return this.data||this.create(); },
+  patch(part={}){ Object.assign(this.ensure(),part); return this.data; },
+  setAppearance(part){ const d=this.ensure(); d.appearance={...(d.appearance||{}),...(part||{})}; return d; },
+  setTraits(ids,stats){
+    const defs=window.TRAIT_DEFS||TRAIT_DEFS||[], seen=new Map(), clean=[];
+    for(const id of ids||[]){const t=defs.find(x=>x.id===id);if(!t)continue;const g=t.exclusiveGroup;if(g&&seen.has(g))continue;if(g)seen.set(g,id);clean.push(id)}
+    const tags=[];for(const id of clean){const t=defs.find(x=>x.id===id);tags.push(...(t?.tags||[]))}
+    return this.patch({traits:clean,stats,tags:[...new Set(tags)]});
   },
-  reset(v={}){ window.pendingCharacter=v; return window.pendingCharacter; },
-  patch(part){ Object.assign(this.value,part||{}); return this.value; },
-  finalize(){ return structuredClone?structuredClone(this.value):JSON.parse(JSON.stringify(this.value)); }
+  setCompanion(pet){return this.patch({companion:pet})},
+  setLife({job,home}){return this.patch({job,home})},
+  validate(){
+    const d=this.ensure(), errors=[];if(!d.name)errors.push('name');if(!d.appearance)errors.push('appearance');
+    const groups=new Set();for(const id of d.traits||[]){const t=TRAIT_DEFS.find(x=>x.id===id);if(t?.exclusiveGroup){if(groups.has(t.exclusiveGroup))errors.push('trait:'+t.exclusiveGroup);groups.add(t.exclusiveGroup)}}
+    return {ok:errors.length===0,errors};
+  },
+  finalize(){const v=this.validate();if(!v.ok)throw new Error('Invalid CharacterDraft: '+v.errors.join(','));return JSON.parse(JSON.stringify(this.data))}
 };
-Object.defineProperty(window,'characterDraft',{configurable:true,get:()=>CharacterDraft.value,set:v=>CharacterDraft.reset(v||{})});
+
+/* Character creation now writes one draft object. DOM is only an editor for that draft. */
+window.beginNewGame=function(){CharacterDraft.create();updateCharacterPreview();showScreen('characterScreen')};
+window.finishCharacter=function(){const fresh=collectCharacter();CharacterDraft.patch(fresh);showScreen('traitScreen');renderTraitBuilder()};
+window.saveTraitsAndContinue=function(){
+ if(traitBudget()<0)return;
+ CharacterDraft.setTraits(getSelectedTraits(),finalStats());
+ const d=CharacterDraft.ensure();
+ if(d.traits.includes('favorite_companion')){showScreen('companionScreen');renderPetPreview()}
+ else{document.getElementById('setupCharacterSummary').textContent=appearanceText(d);showScreen('lifeSetupScreen')}
+};
+const _saveCompanionAndContinue=window.saveCompanionAndContinue;
+window.saveCompanionAndContinue=function(){
+ const before=window.pendingCharacter;window.pendingCharacter=CharacterDraft.ensure();
+ _saveCompanionAndContinue();CharacterDraft.data=window.pendingCharacter;window.pendingCharacter=before;
+};
+const _chooseJob=window.chooseJob,_chooseHome=window.chooseHome;
+window.chooseJob=function(k){_chooseJob(k);CharacterDraft.setLife({job:k,home:selectedHome})};
+window.chooseHome=function(k){_chooseHome(k);CharacterDraft.setLife({job:selectedJob,home:k})};
+const _startGame=window.startGame;
+window.startGame=function(){
+ CharacterDraft.setLife({job:selectedJob,home:selectedHome});
+ const before=window.pendingCharacter;window.pendingCharacter=CharacterDraft.finalize();
+ try{return _startGame()}finally{window.pendingCharacter=before}
+};
 
 /* ---------- Action registry ---------- */
 const Action=window.ETE_ACTIONS={
