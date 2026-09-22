@@ -43,14 +43,14 @@ for old,new in repls.items():
 
 # Dynamic room movement is a physical action; room selection itself is no longer an inline state mutation.
 s=s.replace(
-'''<button class="\${G.currentRoom===r.id?"active":""}" onclick="G.currentRoom='\${r.id}';closeStation();render()">\${r.name}</button>''',
-'''<button class="\${G.currentRoom===r.id?"active":""}" data-action-id="room_move" data-room-id="\${r.id}">\${r.name}</button>'''
+'''<button class="${G.currentRoom===r.id?"active":""}" onclick="G.currentRoom='${r.id}';closeStation();render()">${r.name}</button>''',
+'''<button class="${G.currentRoom===r.id?"active":""}" data-action-id="room_move" data-room-id="${r.id}">${r.name}</button>'''
 )
 
 # Work and walk become parameterized Action Definitions; no inline advance/log remains.
 s=s.replace(
-'''<button \${G.world.workRequired?"":"disabled"} onclick="advance(\${JOBS[G.job].workMinutes});G.money+=\${JOBS[G.job].pay};log('你照常去上班了。');render()">出发上班 \${JOBS[G.job].workMinutes/60}h</button>''',
-'''<button \${G.world.workRequired?"":"disabled"} data-action-id="work_shift" data-action-minutes="\${JOBS[G.job].workMinutes}">出发上班 \${JOBS[G.job].workMinutes/60}h</button>'''
+'''<button ${G.world.workRequired?"":"disabled"} onclick="advance(${JOBS[G.job].workMinutes});G.money+=${JOBS[G.job].pay};log('你照常去上班了。');render()">出发上班 ${JOBS[G.job].workMinutes/60}h</button>''',
+'''<button ${G.world.workRequired?"":"disabled"} data-action-id="work_shift" data-action-minutes="${JOBS[G.job].workMinutes}">出发上班 ${JOBS[G.job].workMinutes/60}h</button>'''
 )
 s=s.replace(
 '''<button onclick="advance(60);log('你在附近走了一圈。');render()">在附近走一圈 1h</button>''',
@@ -59,14 +59,14 @@ s=s.replace(
 
 # Clothing is physical; the item is passed as action context instead of calling wear() directly.
 s=s.replace(
-'''<button onclick="wear('\${s.item}')">穿上</button>''',
-'''<button data-action-id="change_clothes" data-item-id="\${s.item}">穿上</button>'''
+'''<button onclick="wear('${s.item}')">穿上</button>''',
+'''<button data-action-id="change_clothes" data-item-id="${s.item}">穿上</button>'''
 )
 
 # Purchases retain item/price as context. Travel/purchase time is owned by the action.
 s=s.replace(
-'''<button onclick="buy('\${id}',\${p})">购买 ×1</button>''',
-'''<button data-action-id="shop_purchase" data-item-id="\${id}" data-price="\${p}">购买 ×1</button>'''
+'''<button onclick="buy('${id}',${p})">购买 ×1</button>''',
+'''<button data-action-id="shop_purchase" data-item-id="${id}" data-price="${p}">购买 ×1</button>'''
 )
 
 # Old world-action functions are reduced to compatibility effect functions with no time or action logs.
@@ -204,7 +204,7 @@ window.addEventListener('ete:save-loaded',()=>{NPC.installClock();NPC.seed()});
 Action.handle('room_move',({roomId})=>{if(!roomId)return;G.currentRoom=roomId;closeStation?.()});
 Action.handle('room_move_stairs',({roomId})=>{if(!roomId)return;G.currentRoom=roomId;closeStation?.()});
 Action.handle('work_shift',()=>{G.money+=JOBS[G.job].pay});
-Action.handle('outing_walk',()=>{});
+Action.handle('outing_walk',()=>{});\nAction.handle('pet_animal',({petStyle})=>{if(typeof petCat==='function')petCat(petStyle||'head')});
 Action.handle('make_bed',()=>{});
 Action.handle('groom_simple',()=>{G.raw.stress=Math.max(0,G.raw.stress-2)});
 Action.handle('groom_hair',()=>{});
