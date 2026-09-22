@@ -16,6 +16,65 @@ for script_id in [
 s=re.sub(r'<script>\s*\(\(\) => \{\s*const L=\{idle:.*?</script>\s*','',s,flags=re.S)
 s=re.sub(r'<script>\s*\(\(\) => \{\s*const SYS = window\.ETE_NPC_AUTONOMY.*?</script>\s*','',s,flags=re.S)
 
+
+# Migrate the remaining world-action controls to explicit IDs.
+# UI/navigation controls deliberately keep their existing onclick handlers and consume no game time.
+repls = {
+'''<button onclick="sleep()">睡觉 8h</button>''':'''<button data-action-id="sleep">睡觉 8h</button>''',
+'''<button onclick="log('你把被子和枕头重新整理好。');advance(10);render()">整理床铺 10m</button>''':'''<button data-action-id="make_bed">整理床铺 3m</button>''',
+'''<button onclick="shower()">洗澡 20m</button>''':'''<button data-action-id="shower">洗澡 15m</button>''',
+'''<button onclick="groom('basic')">整理外貌 10m</button>''':'''<button data-action-id="groom_simple">整理外貌 2m</button>''',
+'''<button onclick="groom('hair')">修剪头发 30m</button>''':'''<button data-action-id="groom_hair">修剪头发 30m</button>''',
+'''<button onclick="cook('breakfast')">简单早餐 30m</button>''':'''<button data-action-id="cook_breakfast">简单早餐 30m</button>''',
+'''<button onclick="cook('instant')">方便面 15m</button>''':'''<button data-action-id="cook_instant">方便面 15m</button>''',
+'''<button onclick="advance(60);G.raw.boredom=Math.max(0,G.raw.boredom-10);log('你在书桌前读了一会儿书。');render()">读书 1h</button>''':'''<button data-action-id="read_book">读书 1h</button>''',
+'''<button onclick="advance(30);log('你在沙发上发了一会儿呆。');render()">休息 30m</button>''':'''<button data-action-id="rest_medium">休息 30m</button>''',
+'''<button onclick="log('你随便看了一会节目。');advance(60);G.raw.boredom=Math.max(0,G.raw.boredom-10);render()">看节目 1h</button>''':'''<button data-action-id="watch_tv">看节目 1h</button>''',
+'''<button onclick="staySeated()">保持坐着 10m</button>''':'''<button data-action-id="rest_short">休息 10m</button>''',
+'''<button onclick="standUpFromSofa()">起身</button>''':'''<button data-action-id="stand_up">起身</button>''',
+'''<button onclick="sitOnSofa()">坐在沙发上</button>''':'''<button data-action-id="sit_down">坐在沙发上</button>''',
+'''<button onclick="petCat('head')">摸摸额头</button>''':'''<button data-action-id="pet_animal" data-pet-style="head">摸摸额头</button>''',
+'''<button onclick="petCat('chin')">挠下巴</button>''':'''<button data-action-id="pet_animal" data-pet-style="chin">挠下巴</button>''',
+'''<button onclick="petCat('back')">顺毛</button>''':'''<button data-action-id="pet_animal" data-pet-style="back">顺毛</button>''',
+'''<button onclick="petCat('paws')">碰碰爪子</button>''':'''<button data-action-id="pet_animal" data-pet-style="paws">碰碰爪子</button>'''
+}
+for old,new in repls.items():
+    s=s.replace(old,new)
+
+# Dynamic room movement is a physical action; room selection itself is no longer an inline state mutation.
+s=s.replace(
+'''<button class="\${G.currentRoom===r.id?"active":""}" onclick="G.currentRoom='\${r.id}';closeStation();render()">\${r.name}</button>''',
+'''<button class="\${G.currentRoom===r.id?"active":""}" data-action-id="room_move" data-room-id="\${r.id}">\${r.name}</button>'''
+)
+
+# Work and walk become parameterized Action Definitions; no inline advance/log remains.
+s=s.replace(
+'''<button \${G.world.workRequired?"":"disabled"} onclick="advance(\${JOBS[G.job].workMinutes});G.money+=\${JOBS[G.job].pay};log('你照常去上班了。');render()">出发上班 \${JOBS[G.job].workMinutes/60}h</button>''',
+'''<button \${G.world.workRequired?"":"disabled"} data-action-id="work_shift" data-action-minutes="\${JOBS[G.job].workMinutes}">出发上班 \${JOBS[G.job].workMinutes/60}h</button>'''
+)
+s=s.replace(
+'''<button onclick="advance(60);log('你在附近走了一圈。');render()">在附近走一圈 1h</button>''',
+'''<button data-action-id="outing_walk">在附近走一圈 1h</button>'''
+)
+
+# Clothing is physical; the item is passed as action context instead of calling wear() directly.
+s=s.replace(
+'''<button onclick="wear('\${s.item}')">穿上</button>''',
+'''<button data-action-id="change_clothes" data-item-id="\${s.item}">穿上</button>'''
+)
+
+# Purchases retain item/price as context. Travel/purchase time is owned by the action.
+s=s.replace(
+'''<button onclick="buy('\${id}',\${p})">购买 ×1</button>''',
+'''<button data-action-id="shop_purchase" data-item-id="\${id}" data-price="\${p}">购买 ×1</button>'''
+)
+
+# Old world-action functions are reduced to compatibility effect functions with no time or action logs.
+s=re.sub(r'function groom\\(type\\)\\{.*?\\n', 'function groom(type){return type==="basic"?actionGroomSimple():actionGroomHair()}\\n', s)
+s=re.sub(r'function shower\\(\\)\\{.*?\\n', 'function shower(){return actionShower()}\\n', s)
+s=re.sub(r'function sleep\\(\\)\\{.*?\\n', 'function sleep(){return actionSleep()}\\n', s)
+s=re.sub(r'function buy\\(id,p\\)\\{.*?\\n', 'function buy(id,p){return actionPurchase(id,p)}\\n', s)
+
 runtime=r'''<script id="ete-025-core">
 (()=>{
 'use strict';
@@ -64,6 +123,12 @@ span('shower',15,['hygiene'],'你开始洗澡。','你洗完澡，擦干了身�
 span('rest_short',10,['rest'],'你坐下来休息一会儿。','你结束了短暂的休息。');
 span('rest_medium',30,['rest'],'你开始休息。','你休息了一阵。');
 span('cook_quick',10,['cooking'],'你开始准备一些简单的食物。','简单的食物准备好了。');
+span('cook_breakfast',30,['cooking'],'你开始准备早餐。','简单的早餐做好了。');
+span('cook_instant',15,['cooking'],'你开始煮方便面。','方便面煮好了。');
+span('groom_hair',30,['self_care','fine_motor'],'你开始简单修剪头发。','你结束了修剪。');
+span('read_book',60,['observation','rest'],'你坐下来开始读书。','你合上了书。');
+span('watch_tv',60,['observation','rest'],'你打开电视看了一会节目。','你关掉了节目。');
+span('shop_purchase',45,['movement','lifting'],'你开始采购需要的东西。','你结束了这次采购。');
 span('cook_meal',25,['cooking'],'你开始做饭。','饭做好了。');
 span('clean_small',5,['household','hygiene'],'你开始收拾这里。','你收拾完了。');
 span('organize_container',10,['household','manipulation'],'你开始整理这里的东西。','你结束了整理。');
@@ -71,12 +136,21 @@ span('repair_small',15,['crafting','fine_motor'],'你开始处理需要维修的
 span('first_aid',5,['medical','fine_motor'],'你开始处理伤处。','你完成了简单处理。');
 span('sleep',480,['rest'],'你准备睡一觉。','你醒了过来。',{interruptible:true});
 span('work_shift',540,['movement'],'你出门去上班了。','你结束了今天的工作。',{interruptible:true});
-span('outing_walk',30,['movement'],'你出门走一走。','你结束了这次外出，回到了住处。',{interruptible:true});
+span('outing_walk',60,['movement'],'你出门走一走。','你结束了这次外出，回到了住处。',{interruptible:true});
 ['open_container','inspect_item','inventory_view','weather_view','character_view','settings_view','mirror'].forEach(ui);
 
 Action.on=(name,fn)=>{const a=Action.hooks.get(name)||[];a.push(fn);Action.hooks.set(name,a)};
 Action.emit=(name,payload)=>{for(const fn of Action.hooks.get(name)||[]){try{fn(payload)}catch(e){console.error(e)}}};
 Action.addModifier=fn=>{if(typeof fn==='function')Action.modifiers.push(fn)};
+Action.handlers={};
+Action.handle=(id,fn)=>Action.handlers[id]=fn;
+Action.validate=(a,ctx)=>{
+ if(a.id==='shower'&&!G?.world?.water)return '没有水。';
+ if(a.id==='cook_breakfast'&&!(itemCount('bread')>0&&itemCount('eggs')>0))return '缺少吐司或鸡蛋。';
+ if(a.id==='cook_instant'&&!(itemCount('instant')>0))return '家里没有方便面。';
+ if(a.id==='shop_purchase'&&G.money<Number(ctx.price||0))return '钱不够。';
+ return null;
+};
 Action.resolve=(id,ctx={})=>{
  const base=Action.defs[id];if(!base)throw new Error('Unknown action '+id);
  let a={...base,tags:[...base.tags],baseMinutes:base.minutes,minutes:ctx.minutes??base.minutes,ctx};
@@ -93,12 +167,14 @@ const log=(text,a,phase)=>{
 const msg=(a,k,ctx)=>{const v=ctx[k+'Text']??a[k];return typeof v==='function'?v(ctx,a):v};
 Action.perform=(id,ctx={})=>{
  const a=Action.resolve(id,ctx),p={action:a,ctx};
+ const blocked=Action.validate(a,ctx);if(blocked){log(blocked,a,'blocked');if(typeof render==='function')render();return null}
  Action.emit('before',p);
  if(a.log==='span'){log(msg(a,'start',ctx),a,'start');Action.emit('start',p)}
  if(a.minutes&&typeof window.advance==='function')window.advance(a.minutes); // the ONLY action-owned advance call
  if(a.log==='instant')log(msg(a,'complete',ctx),a,'complete');
  if(a.log==='span'){log(msg(a,'end',ctx),a,'end');Action.emit('end',p)}
- Action.emit('after',p);return a;
+ const handler=Action.handlers[id];if(handler)handler(ctx,a);
+ Action.emit('after',p);if(typeof render==='function')render();return a;
 };
 window.performAction=Action.perform;
 
@@ -124,6 +200,28 @@ document.addEventListener('DOMContentLoaded',()=>{NPC.installClock();NPC.seed()}
 window.addEventListener('ete:game-init',()=>{NPC.installClock();NPC.seed()});
 window.addEventListener('ete:save-loaded',()=>{NPC.installClock();NPC.seed()});
 
+/* ---------- World effects: no time advancement and no action-owned log calls ---------- */
+Action.handle('room_move',({roomId})=>{if(!roomId)return;G.currentRoom=roomId;closeStation?.()});
+Action.handle('room_move_stairs',({roomId})=>{if(!roomId)return;G.currentRoom=roomId;closeStation?.()});
+Action.handle('work_shift',()=>{G.money+=JOBS[G.job].pay});
+Action.handle('outing_walk',()=>{});
+Action.handle('make_bed',()=>{});
+Action.handle('groom_simple',()=>{G.raw.stress=Math.max(0,G.raw.stress-2)});
+Action.handle('groom_hair',()=>{});
+Action.handle('shower',()=>{G.raw.dirt=0;G.raw.odor=0});
+Action.handle('sleep',()=>{G.raw.sleepDebt=Math.max(0,G.raw.sleepDebt-75)});
+Action.handle('read_book',()=>{G.raw.boredom=Math.max(0,G.raw.boredom-10)});
+Action.handle('watch_tv',()=>{G.raw.boredom=Math.max(0,G.raw.boredom-10)});
+Action.handle('cook_breakfast',()=>{consume('bread');consume('eggs');G.raw.stomach=Math.max(0,G.raw.stomach-38)});
+Action.handle('cook_instant',()=>{consume('instant');G.raw.stomach=Math.max(0,G.raw.stomach-28)});
+Action.handle('change_clothes',({itemId})=>{if(itemId&&typeof wear==='function')wear(itemId)});
+Action.handle('shop_purchase',({itemId,price})=>actionPurchase(itemId,price));
+window.actionGroomSimple=()=>{G.raw.stress=Math.max(0,G.raw.stress-2);render()};
+window.actionGroomHair=()=>render();
+window.actionShower=()=>{if(!G.world.water){log('没有水。');render();return}G.raw.dirt=0;G.raw.odor=0;render()};
+window.actionSleep=()=>{G.raw.sleepDebt=Math.max(0,G.raw.sleepDebt-75);render()};
+window.actionPurchase=(id,p)=>{if(G.money<p){log('钱不够。');render();return}G.money-=p;let target=id==='bread'||id==='eggs'||id==='milk'?'fridge1':id==='instant'||id==='canned'?'cupboard1':id==='medicine'||id==='masks'?'cabinet1':null;let rm=target?contById(target).room:'living';G.stacks.push(stack(id,1,rm,target,ITEMS[id].cat==='food'?120:9999,'刚购买'))};
+
 /* ---------- Sofa: one state, reacts to completed actions ---------- */
 const Sofa=window.ETE_SOFA_STATE={sitting:false,room:null,catNear:false,catLap:false};
 const room=()=>window.G?.currentRoom||window.G?.room||null;
@@ -138,7 +236,12 @@ const actionClick=e=>{
  const b=e.target.closest('[data-action-id]');if(!b)return;
  const id=b.dataset.actionId;if(!Action.defs[id])return;
  if(Action.defs[id].ui)return; // UI's own handler runs; no time/log.
- Action.perform(id,{control:b,label:(b.textContent||'').trim()});
+ Action.perform(id,{
+   control:b,label:(b.textContent||'').trim(),
+   minutes:b.dataset.actionMinutes?Number(b.dataset.actionMinutes):undefined,
+   roomId:b.dataset.roomId||undefined,itemId:b.dataset.itemId||undefined,
+   price:b.dataset.price?Number(b.dataset.price):undefined,petStyle:b.dataset.petStyle||undefined
+ });
 };
 document.addEventListener('click',actionClick,true);
 
