@@ -26,7 +26,7 @@ jobs:
       - name: Action audit
         shell: bash
         run: |
-          echo '=== advance calls ==='
+          echo '=== core action source ==='\n          sed -n '1035,1220p' dist/index.html\n          echo '=== advance calls ==='
           grep -nE 'advance\(' dist/index.html || true
           echo '=== legacy timers ==='
           grep -nE 'setInterval|setTimeout' dist/index.html || true
