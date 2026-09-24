@@ -257,6 +257,11 @@ Action.emit=(name,payload)=>{for(const fn of Action.hooks.get(name)||[]){try{fn(
 Action.addModifier=fn=>{if(typeof fn==='function')Action.modifiers.push(fn)};
 Action.handlers={};
 Action.handle=(id,fn)=>Action.handlers[id]=fn;
+Action.inventoryCount=id=>(G?.stacks||[]).filter(x=>x.itemId===id).reduce((n,x)=>n+(Number(x.qty)||0),0);
+Action.consumeItem=(id,n=1)=>{
+ let left=n;for(const st of G.stacks||[]){if(st.itemId!==id||left<=0)continue;const take=Math.min(left,st.qty);st.qty-=take;left-=take}
+ G.stacks=(G.stacks||[]).filter(st=>st.qty>0);return left===0
+};
 Action.validate=(a,ctx)=>{
  if(a.id==='shower'&&!G?.world?.water)return '没有水。';
  if(a.id==='cook_breakfast'&&!(itemCount('bread')>0&&itemCount('eggs')>0))return '缺少吐司或鸡蛋。';
