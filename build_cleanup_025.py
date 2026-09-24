@@ -290,9 +290,9 @@ Action.perform=(id,ctx={})=>{
  Action.emit('before',p);
  if(a.log==='span'){log(msg(a,'start',ctx),a,'start');Action.emit('start',p)}
  if(a.minutes)Time.advance(a.minutes,{type:'action',id:a.id,context:ctx});
+ const handler=Action.handlers[id];if(handler)handler(ctx,a);
  if(a.log==='instant')log(msg(a,'complete',ctx),a,'complete');
  if(a.log==='span'){log(msg(a,'end',ctx),a,'end');Action.emit('end',p)}
- const handler=Action.handlers[id];if(handler)handler(ctx,a);
  Action.emit('after',p);if(typeof render==='function')render();return a;
 };
 window.performAction=Action.perform;
