@@ -182,7 +182,9 @@ jobs:
         run: |
           npm install eslint@9 --no-save >/dev/null 2>&1
           cat >/tmp/ete-eslint.mjs <<'JS'
-          import { Linter } from process.cwd() + '/node_modules/eslint/lib/api.js';
+          import { createRequire } from 'module';
+          const require=createRequire(process.cwd()+'/package.json');
+          const { Linter }=require('eslint');
           import fs from 'fs';
           const html=fs.readFileSync('dist/index.html','utf8');
           const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(x=>x[1]);
