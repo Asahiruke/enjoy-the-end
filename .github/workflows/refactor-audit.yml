@@ -46,6 +46,8 @@ jobs:
           grep -n -A160 -B10 -E 'characterReviewScreen|showCharacterReview|ETE_CHARACTER_SUMMARY' dist/index.html || true
           echo '=== pet/log source ==='
           grep -n -A45 -B5 -E '^function petCat|const log=|function log\(' dist/index.html || true
+          echo '=== inventory helpers ==='
+          grep -n -A25 -B10 -E 'function (itemCount|consume)|const (itemCount|consume)' dist/index.html || true
           echo '=== action ids ==='
           grep -oE 'data-action-id="[^"]+"' dist/index.html | sort | uniq -c || true
 
