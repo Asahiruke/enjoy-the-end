@@ -188,9 +188,10 @@ jobs:
           import fs from 'fs';
           const html=fs.readFileSync('dist/index.html','utf8');
           const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(x=>x[1]);
-          const source=scripts.join('\n;\n');
+          let source=scripts.join('\n;\n');
+          source=source.replace(/\bwindow\.([A-Za-z_$][\w$]*)\s*=\s*function\b/g,'function $1');
           const linter=new Linter({configType:'flat'});
-          const globals={window:'readonly',document:'readonly',localStorage:'readonly',console:'readonly',Date:'readonly',Math:'readonly',JSON:'readonly',Object:'readonly',Array:'readonly',Number:'readonly',String:'readonly',Boolean:'readonly',Set:'readonly',Map:'readonly',URL:'readonly',Blob:'readonly',structuredClone:'readonly',setTimeout:'readonly',clearTimeout:'readonly',confirm:'readonly',alert:'readonly',location:'readonly'};
+          const globals={window:'readonly',document:'readonly',localStorage:'readonly',console:'readonly',Date:'readonly',Math:'readonly',JSON:'readonly',Object:'readonly',Array:'readonly',Number:'readonly',String:'readonly',Boolean:'readonly',Set:'readonly',Map:'readonly',URL:'readonly',Blob:'readonly',structuredClone:'readonly',setTimeout:'readonly',clearTimeout:'readonly',confirm:'readonly',alert:'readonly',location:'readonly',innerWidth:'readonly'};
           const msgs=linter.verify(source,[{languageOptions:{ecmaVersion:'latest',sourceType:'script',globals},rules:{'no-undef':'error'}}]);
           const undef=msgs.filter(m=>m.ruleId==='no-undef');
           const grouped={};
