@@ -177,6 +177,7 @@ jobs:
           node /tmp/ete-full.cjs
 
       - name: Undefined function static audit
+        if: always()
         shell: bash
         run: |
           npm install eslint@9 @eslint/js@9 --no-save >/dev/null 2>&1
