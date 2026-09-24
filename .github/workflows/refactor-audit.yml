@@ -54,7 +54,8 @@ jobs:
           echo "pending_count=$(grep -c 'pendingCharacter' dist/index.html || true)"
           echo "interval_count=$(grep -c 'setInterval' dist/index.html || true)"
           echo "trait_bridge_count=$(grep -c 'ETE_TRAIT_GROUP_FIX' dist/index.html || true)"
-          test "$(grep -cE 'advance\(' dist/index.html)" -eq 1
+          test "$(grep -cE 'advance\(' dist/index.html)" -eq 2
+          ! grep -q 'function advance(' dist/index.html
           ! grep -q 'pendingCharacter' dist/index.html
           ! grep -q 'setInterval' dist/index.html
           ! grep -qE 'onclick="[^"]*(advance|sleep|shower|groom|cook|wear|buy|sitOnSofa|standUpFromSofa|petCat)' dist/index.html
