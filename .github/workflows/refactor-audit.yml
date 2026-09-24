@@ -38,5 +38,9 @@ jobs:
           grep -n -A20 -B8 -E 'pendingCharacter|characterDraft|TRAIT_DEFS|finishCharacter|startGame|lifeSetup|characterReview' dist/index.html || true
           echo '=== patch character bridges ==='
           grep -n -A80 -B5 -E 'CharacterDraft|characterReviewScreen|originalLifeConfirm|saveTraitsAndContinue' dist/index.html || true
+          echo '=== creation runtime source ==='
+          grep -n -A120 -B10 -E '^function startGame|^function saveCompanionAndContinue|^function finishCharacter|^function chooseJob|^function chooseHome' dist/index.html || true
+          echo '=== character review runtime ==='
+          grep -n -A160 -B10 -E 'characterReviewScreen|showCharacterReview|ETE_CHARACTER_SUMMARY' dist/index.html || true
           echo '=== action ids ==='
           grep -oE 'data-action-id="[^"]+"' dist/index.html | sort | uniq -c || true
