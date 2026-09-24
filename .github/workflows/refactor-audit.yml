@@ -70,3 +70,4 @@ jobs:
           ! grep -q 'installClock' dist/index.html
           ! grep -q 'window.advance' dist/index.html
           ! grep -Fq '\\nAction.handle' dist/index.html
+          ! grep -q '^function petCat' dist/index.html
