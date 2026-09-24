@@ -89,8 +89,14 @@ s=re.sub(r'^function (?:groom|shower|sleep|buy)[^\n]*\n', '', s, flags=re.M)
 
 
 # Character creation legacy writers are removed; the 0.25 core owns the draft lifecycle.
-for name in ["beginNewGame","finishCharacter","saveTraitsAndContinue","saveCompanionAndContinue"]:
+# Remove multiline legacy writers first.
+for name in ["saveTraitsAndContinue","saveCompanionAndContinue"]:
     s=re.sub(r'^function '+name+r'[(][^)]*[)][{].*?^}', '', s, flags=re.S|re.M)
+# One-line writers must be removed line-wise; a multiline regex would consume the next function body.
+s=re.sub(r'^function (?:beginNewGame|finishCharacter)[^\n]*\n', '', s, flags=re.M)
+# Repair old cleanup output if rebuilding from a previously patched intermediate.
+s=s.replace('function showScreen(id){["titleScreen","characterScreen","traitScreen","companionScreen","lifeSetupScreen","gameScreen"].forEach(x=>{const el=document.getElementById(x);if(el)el.classList.toggle("hidden",x!==id)})}\n}\nfunction appearanceText',
+            'function showScreen(id){["titleScreen","characterScreen","traitScreen","companionScreen","lifeSetupScreen","gameScreen"].forEach(x=>{const el=document.getElementById(x);if(el)el.classList.toggle("hidden",x!==id)})}\nfunction appearanceText')
 
 # startGame no longer reads pendingCharacter. It consumes the finalized CharacterDraft passed by the core.
 s=s.replace('function startGame(){', 'function createGameFromDraft(){', 1)
@@ -128,6 +134,17 @@ const CharacterDraft=window.ETE_CHARACTER_DRAFT={
 };
 
 /* Character creation writes one authoritative draft. */
+window.collectCharacter=function(){return{
+ name:(document.getElementById('charName').value||'主角').trim(),
+ appearance:{
+  gender:document.getElementById('char_gender').value,hairLength:document.getElementById('char_hairLength').value,
+  hairColor:document.getElementById('char_hairColor').value,eyeColor:document.getElementById('char_eyeColor').value,
+  eyeShape:document.getElementById('char_eyeShape').value,skinTone:document.getElementById('char_skinTone').value,
+  height:document.getElementById('char_height').value,weight:document.getElementById('char_weight').value
+ },
+ tags:[],personalityTags:[],skills:{},clothingTags:[]
+}};
+
 window.beginNewGame=function(){CharacterDraft.create();updateCharacterPreview();showScreen('characterScreen')};
 window.finishCharacter=function(){
  const fresh=collectCharacter();CharacterDraft.patch(fresh);showScreen('traitScreen');renderTraitBuilder()
