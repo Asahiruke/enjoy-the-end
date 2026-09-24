@@ -264,8 +264,8 @@ Action.consumeItem=(id,n=1)=>{
 };
 Action.validate=(a,ctx)=>{
  if(a.id==='shower'&&!G?.world?.water)return '没有水。';
- if(a.id==='cook_breakfast'&&!(itemCount('bread')>0&&itemCount('eggs')>0))return '缺少吐司或鸡蛋。';
- if(a.id==='cook_instant'&&!(itemCount('instant')>0))return '家里没有方便面。';
+ if(a.id==='cook_breakfast'&&!(Action.inventoryCount('bread')>0&&Action.inventoryCount('eggs')>0))return '缺少吐司或鸡蛋。';
+ if(a.id==='cook_instant'&&!(Action.inventoryCount('instant')>0))return '家里没有方便面。';
  if(a.id==='shop_purchase'&&G.money<Number(ctx.price||0))return '钱不够。';
  if(a.id==='pet_animal'){const cat=typeof getFavoriteCat==='function'?getFavoriteCat():null;if(!cat||cat.room!==G.currentRoom||!(cat.nearPlayer||cat.onLap))return '猫现在不在你伸手就能够到的位置。';}
  return null;
