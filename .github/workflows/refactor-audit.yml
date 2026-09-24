@@ -180,10 +180,9 @@ jobs:
         if: always()
         shell: bash
         run: |
-          npm install eslint@9 @eslint/js@9 --no-save >/dev/null 2>&1
+          npm install eslint@9 --no-save >/dev/null 2>&1
           cat >/tmp/ete-eslint.mjs <<'JS'
-          import js from '@eslint/js';
-          import { Linter } from 'eslint';
+          import { Linter } from process.cwd() + '/node_modules/eslint/lib/api.js';
           import fs from 'fs';
           const html=fs.readFileSync('dist/index.html','utf8');
           const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(x=>x[1]);
