@@ -84,4 +84,4 @@ jobs:
               (out/f'script-{i:02d}.js').write_text(js,encoding='utf-8')
           print(f'scripts={len(scripts)}')
           PY
-          for f in /tmp/ete-js/*.js; do node --check "$f"; done
+          for f in /tmp/ete-js/*.js; do if ! node --check "$f"; then nl -ba "$f" | sed -n '520,565p'; exit 1; fi; done
