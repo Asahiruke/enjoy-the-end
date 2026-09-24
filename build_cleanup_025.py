@@ -303,9 +303,9 @@ NPC.ensureProfile=n=>{
  if(!n)return n;n.npcType||=(['cat','dog','bird'].includes(n.type)?'animal':'person');
  if(!n.autonomy)n.autonomy={currentAction:n.currentAction||'待着',actionUntilHour:null,lastHour:null};return n;
 };
-NPC.seed=()=>{const g=window.G;if(!g)return;for(const n of (Array.isArray(g.npcs)?g.npcs:Object.values(g.npcs||{})))NPC.ensureProfile(n?.state||n)};
+NPC.seed=()=>{const g=G;if(!g)return;for(const n of (Array.isArray(g.npcs)?g.npcs:Object.values(g.npcs||{})))NPC.ensureProfile(n?.state||n)};
 NPC.hourlyTick=serial=>{
- const g=window.G;if(!g)return;NPC.seed();
+ const g=G;if(!g)return;NPC.seed();
  for(const entry of (Array.isArray(g.npcs)?g.npcs:Object.values(g.npcs||{}))){const n=NPC.ensureProfile(entry?.state||entry);if(!n)continue;const a=n.autonomy;if(a.lastHour===serial)continue;a.lastHour=serial}
 };
 Events.on('hour:crossed',({serial})=>NPC.hourlyTick(serial));
