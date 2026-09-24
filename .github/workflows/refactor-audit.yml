@@ -71,3 +71,17 @@ jobs:
           ! grep -q 'window.advance' dist/index.html
           ! grep -Fq '\\nAction.handle' dist/index.html
           ! grep -q '^function petCat' dist/index.html
+
+      - name: JavaScript syntax audit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re, pathlib
+          s=pathlib.Path('dist/index.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.S|re.I)
+          out=pathlib.Path('/tmp/ete-js');out.mkdir(exist_ok=True)
+          for i,js in enumerate(scripts):
+              (out/f'script-{i:02d}.js').write_text(js,encoding='utf-8')
+          print(f'scripts={len(scripts)}')
+          PY
+          for f in /tmp/ete-js/*.js; do node --check "$f"; done
