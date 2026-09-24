@@ -123,3 +123,50 @@ jobs:
           })().catch(e=>{console.error(e);process.exit(1)});
           JS
           node /tmp/ete-smoke.cjs
+
+      - name: Full gameplay browser test
+        shell: bash
+        run: |
+          python3 -m http.server 4174 --directory dist >/tmp/ete-full-http.log 2>&1 &
+          cat >/tmp/ete-full.cjs <<'JS'
+          const { chromium } = require(process.cwd() + '/node_modules/playwright');
+          const assert=(v,m)=>{if(!v)throw new Error(m)};
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage({viewport:{width:390,height:844}});
+            const errors=[];
+            page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+            page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+            await page.goto('http://127.0.0.1:4174',{waitUntil:'networkidle'});
+            await page.evaluate(()=>beginNewGame());
+            await page.locator('#charName').fill('测试者');
+            await page.evaluate(()=>finishCharacter());
+            await page.evaluate(()=>saveTraitsAndContinue());
+            const screen=await page.evaluate(()=>['companionScreen','lifeSetupScreen'].find(id=>!document.getElementById(id).classList.contains('hidden')));
+            if(screen==='companionScreen')await page.evaluate(()=>saveCompanionAndContinue());
+            await page.evaluate(()=>{chooseJob('office');chooseHome('normalApartment');startGame()});
+            assert(await page.locator('#gameScreen').evaluate(e=>!e.classList.contains('hidden')),'game screen not visible');
+            let snap=await page.evaluate(()=>({time:[G.year,G.month,G.day,G.hour,G.minute],money:G.money,room:G.currentRoom,logs:[...G.logs],raw:{...G.raw},pose:G.playerPose,cat:getFavoriteCat?.()}));
+            console.log('game_start='+JSON.stringify({time:snap.time,money:snap.money,room:snap.room,logs:snap.logs.slice(0,3)}));
+            const run=async(id,ctx={})=>await page.evaluate(([id,ctx])=>{const a=ETE_ACTIONS.perform(id,ctx);return {id:a?.id,time:[G.year,G.month,G.day,G.hour,G.minute],money:G.money,room:G.currentRoom,logs:G.logs.slice(0,5),raw:{...G.raw},pose:G.playerPose}},[id,ctx]);
+            const minuteDiff=(a,b)=>{
+              const da=Date.UTC(a[0],a[1]-1,a[2],a[3],a[4]),db=Date.UTC(b[0],b[1]-1,b[2],b[3],b[4]);return (db-da)/60000;
+            };
+            let before=snap.time,r=await run('room_move',{roomId:'living'});assert(minuteDiff(before,r.time)===1,'room_move time');assert(r.room==='living','room_move room');console.log('room_move=ok');
+            before=r.time;r=await run('sit_down');assert(minuteDiff(before,r.time)===1,'sit time');assert(r.pose?.type==='sitting','sit pose');console.log('sit_down=ok');
+            before=r.time;r=await run('rest_short');assert(minuteDiff(before,r.time)===10,'rest time');console.log('rest_short=ok');
+            before=r.time;r=await run('stand_up');assert(minuteDiff(before,r.time)===1,'stand time');assert(!r.pose,'stand pose');console.log('stand_up=ok');
+            before=r.time;r=await run('room_move',{roomId:'bathroom'});assert(minuteDiff(before,r.time)===1,'bathroom move');before=r.time;r=await run('shower');assert(minuteDiff(before,r.time)===15,'shower time');assert(r.raw.dirt===0&&r.raw.odor===0,'shower effects');console.log('shower=ok');
+            before=r.time;r=await run('room_move',{roomId:'kitchen'});assert(minuteDiff(before,r.time)===1,'kitchen move');before=r.time;r=await run('cook_instant');assert(minuteDiff(before,r.time)===15,'cook time');console.log('cook_instant=ok');
+            before=r.time;r=await run('room_move',{roomId:'bedroom'});assert(minuteDiff(before,r.time)===1,'bedroom move');before=r.time;r=await run('sleep');assert(minuteDiff(before,r.time)===480,'sleep time');assert(r.raw.sleepDebt<30,'sleep effect');console.log('sleep=ok');
+            before=r.time;const money=r.money;r=await run('work_shift',{minutes:540});assert(minuteDiff(before,r.time)===540,'work time');assert(r.money>money,'work pay');console.log('work_shift=ok');
+            const hourState=await page.evaluate(()=>({npcs:Object.values(G.npcs||{}).map(n=>({id:n.id,last:n.autonomy?.lastHour})),logs:G.logs.slice(0,10)}));
+            assert(hourState.npcs.every(n=>n.last!=null),'NPC hourly tick missing');console.log('npc_hourly=ok');
+            const duplicate=await page.evaluate(()=>G.logs.some((x,i,a)=>i&&x===a[i-1]));assert(!duplicate,'adjacent duplicate logs found');
+            if(errors.length)throw new Error(errors.join('\n'));
+            console.log('final='+JSON.stringify({time:r.time,money:r.money,logs:r.logs}));
+            await page.screenshot({path:'/tmp/ete-full.png',fullPage:true});
+            await browser.close();
+          })().catch(e=>{console.error(e.stack||e);process.exit(1)});
+          JS
+          node /tmp/ete-full.cjs
