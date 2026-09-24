@@ -328,17 +328,13 @@ Action.handle('shower',()=>{G.raw.dirt=0;G.raw.odor=0});
 Action.handle('sleep',()=>{G.raw.sleepDebt=Math.max(0,G.raw.sleepDebt-75)});
 Action.handle('read_book',()=>{G.raw.boredom=Math.max(0,G.raw.boredom-10)});
 Action.handle('watch_tv',()=>{G.raw.boredom=Math.max(0,G.raw.boredom-10)});
-Action.handle('cook_breakfast',()=>{consume('bread');consume('eggs');G.raw.stomach=Math.max(0,G.raw.stomach-38)});
-Action.handle('cook_instant',()=>{consume('instant');G.raw.stomach=Math.max(0,G.raw.stomach-28)});
+Action.handle('cook_breakfast',()=>{Action.consumeItem('bread');Action.consumeItem('eggs');G.raw.stomach=Math.max(0,G.raw.stomach-38)});
+Action.handle('cook_instant',()=>{Action.consumeItem('instant');G.raw.stomach=Math.max(0,G.raw.stomach-28)});
 Action.handle('change_clothes',({itemId})=>{if(itemId&&typeof wear==='function')wear(itemId)});
 Action.handle('shop_purchase',({itemId,price})=>{
  G.money-=price;const target=itemId==='bread'||itemId==='eggs'||itemId==='milk'?'fridge1':itemId==='instant'||itemId==='canned'?'cupboard1':itemId==='medicine'||itemId==='masks'?'cabinet1':null;
  const rm=target?contById(target).room:'living';G.stacks.push(stack(itemId,1,rm,target,ITEMS[itemId].cat==='food'?120:9999,'刚购买'))
 });
-window.actionGroomSimple=()=>{G.raw.stress=Math.max(0,G.raw.stress-2);render()};
-window.actionGroomHair=()=>render();
-window.actionShower=()=>{if(!G.world.water){log('没有水。');render();return}G.raw.dirt=0;G.raw.odor=0;render()};
-window.actionSleep=()=>{G.raw.sleepDebt=Math.max(0,G.raw.sleepDebt-75);render()};
 
 /* ---------- Sofa: one state, reacts to completed actions ---------- */
 const Sofa=window.ETE_SOFA_STATE={sitting:false,room:null,catNear:false,catLap:false};
