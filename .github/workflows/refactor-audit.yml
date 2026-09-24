@@ -189,10 +189,11 @@ jobs:
           const html=fs.readFileSync('dist/index.html','utf8');
           const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(x=>x[1]);
           let source=scripts.join('\n;\n');
-          source=source.replace(/\bwindow\.([A-Za-z_$][\w$]*)\s*=\s*function\b/g,'function $1');
+          const windowFns=[...source.matchAll(/\bwindow\.([A-Za-z_$][\w$]*)\s*=\s*function\b/g)].map(m=>m[1]);
+          const globalsFromWindow=Object.fromEntries(windowFns.map(n=>[n,'readonly']));
           const linter=new Linter({configType:'flat'});
           const globals={window:'readonly',document:'readonly',localStorage:'readonly',console:'readonly',Date:'readonly',Math:'readonly',JSON:'readonly',Object:'readonly',Array:'readonly',Number:'readonly',String:'readonly',Boolean:'readonly',Set:'readonly',Map:'readonly',URL:'readonly',Blob:'readonly',structuredClone:'readonly',setTimeout:'readonly',clearTimeout:'readonly',confirm:'readonly',alert:'readonly',location:'readonly',innerWidth:'readonly'};
-          const msgs=linter.verify(source,[{languageOptions:{ecmaVersion:'latest',sourceType:'script',globals},rules:{'no-undef':'error'}}]);
+          const msgs=linter.verify(source,[{languageOptions:{ecmaVersion:'latest',sourceType:'script',globals:{...globals,...globalsFromWindow}},rules:{'no-undef':'error'}}]);
           const undef=msgs.filter(m=>m.ruleId==='no-undef');
           const grouped={};
           for(const m of undef){const name=(m.message.match(/'([^']+)'/)||[])[1]||m.message;(grouped[name]??=[]).push(m.line)}
