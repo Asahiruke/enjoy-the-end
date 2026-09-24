@@ -303,10 +303,10 @@ NPC.ensureProfile=n=>{
  if(!n)return n;n.npcType||=(['cat','dog','bird'].includes(n.type)?'animal':'person');
  n.autonomy||={currentAction:n.currentAction||'待着',actionUntilHour:null,lastHour:null};return n;
 };
-NPC.seed=()=>{const g=window.G;if(!g)return;Object.values(g.npcs||{}).forEach(NPC.ensureProfile)};
+NPC.seed=()=>{const g=window.G;if(!g)return;for(const n of (Array.isArray(g.npcs)?g.npcs:Object.values(g.npcs||{})))NPC.ensureProfile(n)};
 NPC.hourlyTick=serial=>{
  const g=window.G;if(!g)return;NPC.seed();
- for(const n of Object.values(g.npcs||{})){const a=n.autonomy;if(a.lastHour===serial)continue;a.lastHour=serial}
+ for(const n of (Array.isArray(g.npcs)?g.npcs:Object.values(g.npcs||{}))){NPC.ensureProfile(n);const a=n.autonomy;if(a.lastHour===serial)continue;a.lastHour=serial}
 };
 Events.on('hour:crossed',({serial})=>NPC.hourlyTick(serial));
 Events.on('game:init',()=>NPC.seed());
