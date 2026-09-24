@@ -85,3 +85,41 @@ jobs:
           print(f'scripts={len(scripts)}')
           PY
           for f in /tmp/ete-js/*.js; do if ! node --check "$f"; then nl -ba "$f" | sed -n '520,565p'; exit 1; fi; done
+
+      - name: Browser runtime smoke test
+        shell: bash
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 --no-save >/dev/null 2>&1
+          npx playwright install chromium --with-deps >/dev/null 2>&1
+          python3 -m http.server 4173 --directory dist >/tmp/ete-http.log 2>&1 &
+          cat >/tmp/ete-smoke.cjs <<'JS'
+          const { chromium } = require(process.cwd() + '/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage({viewport:{width:390,height:844}});
+            const errors=[];
+            page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+            page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+            await page.goto('http://127.0.0.1:4173',{waitUntil:'networkidle'});
+            console.log('title='+await page.title());
+            console.log('buttons='+(await page.locator('button').allTextContents()).slice(0,20).join(' | '));
+            await page.evaluate(()=>beginNewGame());
+            console.log('character_visible='+await page.locator('#characterScreen').evaluate(e=>!e.classList.contains('hidden')));
+            await page.evaluate(()=>finishCharacter());
+            console.log('traits_visible='+await page.locator('#traitScreen').evaluate(e=>!e.classList.contains('hidden')));
+            const state=await page.evaluate(()=>({
+              hasDraft:!!window.ETE_CHARACTER_DRAFT,
+              pending:typeof window.pendingCharacter,
+              hasAction:!!window.ETE_ACTIONS,
+              hasTime:!!window.ETE_TIME,
+              hasNPC:!!window.ETE_NPC_AUTONOMY
+            }));
+            console.log('runtime='+JSON.stringify(state));
+            if(!state.hasDraft||state.pending!=='undefined'||!state.hasAction||!state.hasTime||!state.hasNPC)errors.push('core runtime invariant failed');
+            if(errors.length){console.error(errors.join('\n'));await browser.close();process.exit(1)}
+            await page.screenshot({path:'/tmp/ete-smoke.png',fullPage:true});
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/ete-smoke.cjs
