@@ -4,6 +4,7 @@ import re
 p=Path("dist/index.html")
 s=p.read_text(encoding="utf-8")
 s=s.replace("Prototype 0.24","Prototype 0.25-dev")
+s=s.replace('function advance(min){','function advanceClockPrimitive(min){',1)
 s=s.replace('let selectedJob="office",selectedHome="normalApartment",pendingCharacter=null,G=null,uid=1;',
             'let selectedJob="office",selectedHome="normalApartment",G=null,uid=1;')
 s=s.replace('{id:"good_endurance",name:"耐力良好",cost:5,', '{id:"good_endurance",name:"耐力良好",cost:5,exclusiveGroup:"endurance",')
@@ -164,6 +165,22 @@ window.startGame=function(){
  return createGameFromDraft()
 };
 
+/* ---------- Event bus + canonical time engine ---------- */
+const Events=window.ETE_EVENTS={
+ hooks:new Map(),
+ on(name,fn){const a=this.hooks.get(name)||[];a.push(fn);this.hooks.set(name,a);return()=>this.hooks.set(name,(this.hooks.get(name)||[]).filter(x=>x!==fn))},
+ emit(name,payload){for(const fn of this.hooks.get(name)||[]){try{fn(payload)}catch(e){console.error(e)}}}
+};
+const clockHourSerial=g=>Math.floor(Date.UTC(g?.year||2026,(g?.month||1)-1,g?.day||1,g?.hour||0)/3600000);
+const Time=window.ETE_TIME={
+ advance(minutes,cause=null){
+  const n=Math.max(0,Math.round(Number(minutes)||0));if(!n)return;
+  const before=clockHourSerial(window.G);advanceClockPrimitive(n);const after=clockHourSerial(window.G);
+  Events.emit('time:advanced',{minutes:n,cause,beforeHour:before,afterHour:after});
+  for(let h=Math.max(before+1,after-48);h<=after;h++)Events.emit('hour:crossed',{serial:h,cause});
+ }
+};
+
 /* ---------- Action registry ---------- */
 const Action=window.ETE_ACTIONS={
  version:'0.25-dev',defs:{},tags:{},modifiers:[],hooks:new Map(),active:null
@@ -243,7 +260,7 @@ Action.perform=(id,ctx={})=>{
  const blocked=Action.validate(a,ctx);if(blocked){log(blocked,a,'blocked');if(typeof render==='function')render();return null}
  Action.emit('before',p);
  if(a.log==='span'){log(msg(a,'start',ctx),a,'start');Action.emit('start',p)}
- if(a.minutes&&typeof window.advance==='function')window.advance(a.minutes); // the ONLY action-owned advance call
+ if(a.minutes)Time.advance(a.minutes,{type:'action',id:a.id,context:ctx});
  if(a.log==='instant')log(msg(a,'complete',ctx),a,'complete');
  if(a.log==='span'){log(msg(a,'end',ctx),a,'end');Action.emit('end',p)}
  const handler=Action.handlers[id];if(handler)handler(ctx,a);
@@ -251,27 +268,21 @@ Action.perform=(id,ctx={})=>{
 };
 window.performAction=Action.perform;
 
-/* ---------- NPC autonomy: event-driven only, no polling ---------- */
+/* ---------- NPC autonomy: subscribes to world events; never owns the clock ---------- */
 const NPC=window.ETE_NPC_AUTONOMY={};
-const hourSerial=g=>Math.floor(Date.UTC(g?.year||2026,(g?.month||1)-1,g?.day||1,g?.hour||0)/3600000);
 NPC.ensureProfile=n=>{
  if(!n)return n;n.npcType||=(['cat','dog','bird'].includes(n.type)?'animal':'person');
  n.autonomy||={currentAction:n.currentAction||'待着',actionUntilHour:null,lastHour:null};return n;
 };
-NPC.seed=()=>{const g=window.G;if(!g)return;Object.values(g.npcs||{}).forEach(NPC.ensureProfile);if(g.character?.companion)NPC.ensureProfile(g.character.companion)};
+NPC.seed=()=>{const g=window.G;if(!g)return;Object.values(g.npcs||{}).forEach(NPC.ensureProfile)};
 NPC.hourlyTick=serial=>{
  const g=window.G;if(!g)return;NPC.seed();
  for(const n of Object.values(g.npcs||{})){const a=n.autonomy;if(a.lastHour===serial)continue;a.lastHour=serial}
 };
-NPC.processCrossing=(before,after)=>{for(let h=Math.max(before+1,after-48);h<=after;h++)NPC.hourlyTick(h)};
-NPC.installClock=()=>{
- if(NPC.clockInstalled||typeof window.advance!=='function')return;
- const raw=window.advance;window.advance=function(){const before=hourSerial(window.G),out=raw.apply(this,arguments),after=hourSerial(window.G);NPC.processCrossing(before,after);return out};
- NPC.clockInstalled=true;
-};
-document.addEventListener('DOMContentLoaded',()=>{NPC.installClock();NPC.seed()});
-window.addEventListener('ete:game-init',()=>{NPC.installClock();NPC.seed()});
-window.addEventListener('ete:save-loaded',()=>{NPC.installClock();NPC.seed()});
+Events.on('hour:crossed',({serial})=>NPC.hourlyTick(serial));
+Events.on('game:init',()=>NPC.seed());
+Events.on('save:loaded',()=>NPC.seed());
+document.addEventListener('DOMContentLoaded',()=>NPC.seed());
 
 /* ---------- World effects: no time advancement and no action-owned log calls ---------- */
 Action.handle('room_move',({roomId})=>{if(!roomId)return;G.currentRoom=roomId;closeStation?.()});
@@ -290,12 +301,14 @@ Action.handle('watch_tv',()=>{G.raw.boredom=Math.max(0,G.raw.boredom-10)});
 Action.handle('cook_breakfast',()=>{consume('bread');consume('eggs');G.raw.stomach=Math.max(0,G.raw.stomach-38)});
 Action.handle('cook_instant',()=>{consume('instant');G.raw.stomach=Math.max(0,G.raw.stomach-28)});
 Action.handle('change_clothes',({itemId})=>{if(itemId&&typeof wear==='function')wear(itemId)});
-Action.handle('shop_purchase',({itemId,price})=>actionPurchase(itemId,price));
+Action.handle('shop_purchase',({itemId,price})=>{
+ G.money-=price;const target=itemId==='bread'||itemId==='eggs'||itemId==='milk'?'fridge1':itemId==='instant'||itemId==='canned'?'cupboard1':itemId==='medicine'||itemId==='masks'?'cabinet1':null;
+ const rm=target?contById(target).room:'living';G.stacks.push(stack(itemId,1,rm,target,ITEMS[itemId].cat==='food'?120:9999,'刚购买'))
+});
 window.actionGroomSimple=()=>{G.raw.stress=Math.max(0,G.raw.stress-2);render()};
 window.actionGroomHair=()=>render();
 window.actionShower=()=>{if(!G.world.water){log('没有水。');render();return}G.raw.dirt=0;G.raw.odor=0;render()};
 window.actionSleep=()=>{G.raw.sleepDebt=Math.max(0,G.raw.sleepDebt-75);render()};
-window.actionPurchase=(id,p)=>{if(G.money<p){log('钱不够。');render();return}G.money-=p;let target=id==='bread'||id==='eggs'||id==='milk'?'fridge1':id==='instant'||id==='canned'?'cupboard1':id==='medicine'||id==='masks'?'cabinet1':null;let rm=target?contById(target).room:'living';G.stacks.push(stack(id,1,rm,target,ITEMS[id].cat==='food'?120:9999,'刚购买'))};
 
 /* ---------- Sofa: one state, reacts to completed actions ---------- */
 const Sofa=window.ETE_SOFA_STATE={sitting:false,room:null,catNear:false,catLap:false};
