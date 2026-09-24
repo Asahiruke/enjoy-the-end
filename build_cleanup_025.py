@@ -314,7 +314,8 @@ Action.handle('sit_down',()=>{if(!roomHasSofa?.())return;G.playerPose={type:'sit
 Action.handle('stand_up',()=>{const cat=typeof getFavoriteCat==='function'?getFavoriteCat():null;if(cat?.onLap){cat.onLap=false;cat.nearPlayer=true;cat.sleeping=false;cat.currentAction='被你起身惊醒，留在沙发边'}G.playerPose=null});
 Action.handle('room_move_stairs',({roomId})=>{if(!roomId)return;G.currentRoom=roomId;closeStation?.()});
 Action.handle('work_shift',()=>{G.money+=JOBS[G.job].pay});
-Action.handle('outing_walk',()=>{});\nAction.handle('pet_animal',()=>{const cat=getFavoriteCat();if(cat)cat.relation=Math.min(100,(cat.relation||0)+1)});
+Action.handle('outing_walk',()=>{});
+Action.handle('pet_animal',()=>{const cat=getFavoriteCat();if(cat)cat.relation=Math.min(100,(cat.relation||0)+1)});
 Action.handle('make_bed',()=>{});
 Action.handle('groom_simple',()=>{G.raw.stress=Math.max(0,G.raw.stress-2)});
 Action.handle('groom_hair',()=>{});
