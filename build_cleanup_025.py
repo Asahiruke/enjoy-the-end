@@ -4,6 +4,8 @@ import re
 p=Path("dist/index.html")
 s=p.read_text(encoding="utf-8")
 s=s.replace("Prototype 0.24","Prototype 0.25-dev")
+s=s.replace('let selectedJob="office",selectedHome="normalApartment",pendingCharacter=null,G=null,uid=1;',
+            'let selectedJob="office",selectedHome="normalApartment",G=null,uid=1;')
 s=s.replace('{id:"good_endurance",name:"耐力良好",cost:5,', '{id:"good_endurance",name:"耐力良好",cost:5,exclusiveGroup:"endurance",')
 s=s.replace('{id:"poor_endurance",name:"耐力不足",cost:-5,', '{id:"poor_endurance",name:"耐力不足",cost:-5,exclusiveGroup:"endurance",')
 
@@ -90,6 +92,7 @@ for name in ["beginNewGame","finishCharacter","saveTraitsAndContinue","saveCompa
     s=re.sub(r'^function '+name+r'[(][^)]*[)][{].*?^}', '', s, flags=re.S|re.M)
 
 # startGame no longer reads pendingCharacter. It consumes the finalized CharacterDraft passed by the core.
+s=s.replace('function startGame(){', 'function createGameFromDraft(){', 1)
 s=s.replace('character:pendingCharacter||collectCharacter(),job:selectedJob,home:selectedHome,',
             'character:window.ETE_CHARACTER_DRAFT.finalize(),job:selectedJob,home:selectedHome,')
 
@@ -155,11 +158,10 @@ window.saveCompanionAndContinue=function(){
 const _chooseJob=window.chooseJob,_chooseHome=window.chooseHome;
 window.chooseJob=function(k){_chooseJob(k);CharacterDraft.setLife({job:k,home:selectedHome})};
 window.chooseHome=function(k){_chooseHome(k);CharacterDraft.setLife({job:selectedJob,home:k})};
-const legacyStartGame=window.startGame;
 window.startGame=function(){
  CharacterDraft.setLife({job:selectedJob,home:selectedHome});
  CharacterDraft.finalize();
- return legacyStartGame()
+ return createGameFromDraft()
 };
 
 /* ---------- Action registry ---------- */
