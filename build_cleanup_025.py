@@ -311,6 +311,7 @@ NPC.hourlyTick=serial=>{
  for(const entry of NPC.entries()){const n=NPC.ensureProfile(NPC.stateOf(entry));if(!n)continue;const a=n.autonomy;if(a.lastHour===serial)continue;a.lastHour=serial}
 };
 Events.on('hour:crossed',({serial})=>NPC.hourlyTick(serial));
+Action.on('after',()=>{const serial=clockHourSerial(window.G);NPC.hourlyTick(serial)});
 Events.on('game:init',()=>NPC.seed());
 Events.on('save:loaded',()=>NPC.seed());
 document.addEventListener('DOMContentLoaded',()=>NPC.seed());
