@@ -175,3 +175,42 @@ jobs:
           })().catch(e=>{console.error(e.stack||e);process.exit(1)});
           JS
           node /tmp/ete-full.cjs
+
+      - name: Undefined function static audit
+        shell: bash
+        run: |
+          npm install eslint@9 @eslint/js@9 --no-save >/dev/null 2>&1
+          cat >/tmp/ete-eslint.mjs <<'JS'
+          import js from '@eslint/js';
+          import { Linter } from 'eslint';
+          import fs from 'fs';
+          const html=fs.readFileSync('dist/index.html','utf8');
+          const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(x=>x[1]);
+          const source=scripts.join('\n;\n');
+          const linter=new Linter({configType:'flat'});
+          const globals={window:'readonly',document:'readonly',localStorage:'readonly',console:'readonly',Date:'readonly',Math:'readonly',JSON:'readonly',Object:'readonly',Array:'readonly',Number:'readonly',String:'readonly',Boolean:'readonly',Set:'readonly',Map:'readonly',URL:'readonly',Blob:'readonly',structuredClone:'readonly',setTimeout:'readonly',clearTimeout:'readonly',confirm:'readonly',alert:'readonly',location:'readonly'};
+          const msgs=linter.verify(source,[{languageOptions:{ecmaVersion:'latest',sourceType:'script',globals},rules:{'no-undef':'error'}}]);
+          const undef=msgs.filter(m=>m.ruleId==='no-undef');
+          const grouped={};
+          for(const m of undef){const name=(m.message.match(/'([^']+)'/)||[])[1]||m.message;(grouped[name]??=[]).push(m.line)}
+          console.log('undefined_symbols='+Object.keys(grouped).length);
+          for(const [name,lines] of Object.entries(grouped).sort())console.log(name+': '+[...new Set(lines)].slice(0,12).join(','));
+          fs.writeFileSync('/tmp/ete-undefined.json',JSON.stringify(grouped,null,2));
+          JS
+          node /tmp/ete-eslint.mjs
+          echo '=== likely stale function calls ==='
+          python3 - <<'PY'
+          import json,re,pathlib
+          d=json.load(open('/tmp/ete-undefined.json'))
+          html=pathlib.Path('dist/index.html').read_text()
+          builtins={'event','navigator','crypto','performance','FileReader','HTMLElement','CustomEvent'}
+          suspects=[]
+          for name,lines in d.items():
+              if name in builtins: continue
+              if re.search(r'\b'+re.escape(name)+r'\s*\(',html):
+                  suspects.append((name,lines))
+          print('stale_call_suspects=',len(suspects))
+          for n,ls in suspects: print(n,ls)
+          if suspects:
+              raise SystemExit(1)
+          PY
