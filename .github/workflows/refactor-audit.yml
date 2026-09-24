@@ -44,6 +44,8 @@ jobs:
           grep -n -A120 -B10 -E '^function startGame|^function saveCompanionAndContinue|^function finishCharacter|^function chooseJob|^function chooseHome' dist/index.html || true
           echo '=== character review runtime ==='
           grep -n -A160 -B10 -E 'characterReviewScreen|showCharacterReview|ETE_CHARACTER_SUMMARY' dist/index.html || true
+          echo '=== pet/log source ==='
+          grep -n -A45 -B5 -E '^function petCat|const log=|function log\(' dist/index.html || true
           echo '=== action ids ==='
           grep -oE 'data-action-id="[^"]+"' dist/index.html | sort | uniq -c || true
 
