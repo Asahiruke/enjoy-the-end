@@ -320,16 +320,14 @@ const actionClick=e=>{
 };
 document.addEventListener('click',actionClick,true);
 
-/* ---------- Trait exclusivity: data, not special cases ---------- */
-window.ETE_TRAIT_GROUP_FIX={good_endurance:'endurance',poor_endurance:'endurance'};
+/* ---------- Trait exclusivity: definitions are the only source of truth ---------- */
 document.addEventListener('change',e=>{
  const input=e.target.closest('input[data-trait]');if(!input?.checked)return;
- const defs=window.TRAIT_DEFS||[];
- const d=defs.find(x=>x.id===input.value);const group=d?.exclusiveGroup||window.ETE_TRAIT_GROUP_FIX[d?.id];
- if(!group)return;
+ const defs=window.TRAIT_DEFS||TRAIT_DEFS||[];
+ const d=defs.find(x=>x.id===input.value),group=d?.exclusiveGroup;if(!group)return;
  document.querySelectorAll('input[data-trait]:checked').forEach(o=>{
   if(o===input)return;const od=defs.find(x=>x.id===o.value);
-  if((od?.exclusiveGroup||window.ETE_TRAIT_GROUP_FIX[od?.id])===group)o.checked=false;
+  if(od?.exclusiveGroup===group)o.checked=false;
  });
 });
 })();
