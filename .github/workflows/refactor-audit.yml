@@ -67,4 +67,4 @@ jobs:
           ! grep -q 'ETE_TRAIT_GROUP_FIX' dist/index.html
           ! grep -q 'installClock' dist/index.html
           ! grep -q 'window.advance' dist/index.html
-          ! grep -q '\\nAction.handle' dist/index.html
+          ! grep -Fq '\\nAction.handle' dist/index.html
