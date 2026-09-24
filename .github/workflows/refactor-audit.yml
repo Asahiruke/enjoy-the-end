@@ -54,6 +54,11 @@ jobs:
           echo "pending_count=$(grep -c 'pendingCharacter' dist/index.html || true)"
           echo "interval_count=$(grep -c 'setInterval' dist/index.html || true)"
           echo "trait_bridge_count=$(grep -c 'ETE_TRAIT_GROUP_FIX' dist/index.html || true)"
+          echo "legacy_function_advance=$(grep -c 'function advance(' dist/index.html || true)"
+          echo "inline_world=$(grep -cE 'onclick=\"[^\"]*(advance|sleep|shower|groom|cook|wear|buy|sitOnSofa|standUpFromSofa|petCat)' dist/index.html || true)"
+          echo "install_clock=$(grep -c 'installClock' dist/index.html || true)"
+          echo "window_advance=$(grep -c 'window.advance' dist/index.html || true)"
+          echo "literal_slash_n=$(grep -c '\\\\nAction.handle' dist/index.html || true)"
           test "$(grep -cE 'advance\(' dist/index.html)" -eq 2
           ! grep -q 'function advance(' dist/index.html
           ! grep -q 'pendingCharacter' dist/index.html
