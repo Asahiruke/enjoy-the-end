@@ -50,6 +50,10 @@ jobs:
       - name: Refactor invariants
         shell: bash
         run: |
+          echo "advance_count=$(grep -cE 'advance\(' dist/index.html)"
+          echo "pending_count=$(grep -c 'pendingCharacter' dist/index.html || true)"
+          echo "interval_count=$(grep -c 'setInterval' dist/index.html || true)"
+          echo "trait_bridge_count=$(grep -c 'ETE_TRAIT_GROUP_FIX' dist/index.html || true)"
           test "$(grep -cE 'advance\(' dist/index.html)" -eq 2
           ! grep -q 'pendingCharacter' dist/index.html
           ! grep -q 'setInterval' dist/index.html
