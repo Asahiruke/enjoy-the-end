@@ -48,6 +48,8 @@ jobs:
           grep -n -A45 -B5 -E '^function petCat|const log=|function log\(' dist/index.html || true
           echo '=== inventory helpers ==='
           grep -n -A25 -B10 -E 'function (itemCount|consume)|const (itemCount|consume)' dist/index.html || true
+          echo '=== inventory helper source ==='
+          grep -n -A15 -B5 -E 'itemCount|function consume|const consume|function count|stacks.*itemId' dist/index.html || true
           echo '=== action ids ==='
           grep -oE 'data-action-id="[^"]+"' dist/index.html | sort | uniq -c || true
 
