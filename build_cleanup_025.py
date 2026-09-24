@@ -84,6 +84,15 @@ for name in ["staySeated","sitOnSofa","standUpFromSofa","cook"]:
     s=re.sub(r'function '+name+r'[(][^)]*[)][{].*?^}', '', s, flags=re.S|re.M)
 s=re.sub(r'^function (?:groom|shower|sleep|buy)[^\n]*\n', '', s, flags=re.M)
 
+
+# Character creation legacy writers are removed; the 0.25 core owns the draft lifecycle.
+for name in ["beginNewGame","finishCharacter","saveTraitsAndContinue","saveCompanionAndContinue"]:
+    s=re.sub(r'^function '+name+r'[(][^)]*[)][{].*?^}', '', s, flags=re.S|re.M)
+
+# startGame no longer reads pendingCharacter. It consumes the finalized CharacterDraft passed by the core.
+s=s.replace('character:pendingCharacter||collectCharacter(),job:selectedJob,home:selectedHome,',
+            'character:window.ETE_CHARACTER_DRAFT.finalize(),job:selectedJob,home:selectedHome,')
+
 runtime=r'''<script id="ete-025-core">
 (()=>{
 'use strict';
@@ -111,9 +120,11 @@ const CharacterDraft=window.ETE_CHARACTER_DRAFT={
   finalize(){const v=this.validate();if(!v.ok)throw new Error('Invalid CharacterDraft: '+v.errors.join(','));return JSON.parse(JSON.stringify(this.data))}
 };
 
-/* Character creation now writes one draft object. DOM is only an editor for that draft. */
+/* Character creation writes one authoritative draft. */
 window.beginNewGame=function(){CharacterDraft.create();updateCharacterPreview();showScreen('characterScreen')};
-window.finishCharacter=function(){const fresh=collectCharacter();CharacterDraft.patch(fresh);showScreen('traitScreen');renderTraitBuilder()};
+window.finishCharacter=function(){
+ const fresh=collectCharacter();CharacterDraft.patch(fresh);showScreen('traitScreen');renderTraitBuilder()
+};
 window.saveTraitsAndContinue=function(){
  if(traitBudget()<0)return;
  CharacterDraft.setTraits(getSelectedTraits(),finalStats());
@@ -121,19 +132,34 @@ window.saveTraitsAndContinue=function(){
  if(d.traits.includes('favorite_companion')){showScreen('companionScreen');renderPetPreview()}
  else{document.getElementById('setupCharacterSummary').textContent=appearanceText(d);showScreen('lifeSetupScreen')}
 };
-const _saveCompanionAndContinue=window.saveCompanionAndContinue;
+function collectCompanionDraft(){
+ return {
+  id:'favorite_cat',type:'cat',name:(document.getElementById('petName').value||'小灰').trim(),
+  appearance:{
+   hairLength:document.getElementById('petHairLength').value,baseColor:document.getElementById('petBaseColor').value,
+   pattern:document.getElementById('petPattern').value,white:document.getElementById('petWhite').value,
+   facePattern:document.getElementById('petFacePattern').value,eyeColor:document.getElementById('petEyeColor').value,
+   build:document.getElementById('petBuild').value,tail:document.getElementById('petTail').value,
+   ears:document.getElementById('petEars').value,noseColor:document.getElementById('petNoseColor').value,
+   padColor:document.getElementById('petPadColor').value
+  },
+  relation:100,resident:true,location:'player_home',room:'living',currentAction:'打盹',
+  mood:'calm',sleeping:false,nearPlayer:false,onLap:false
+ };
+}
 window.saveCompanionAndContinue=function(){
- const before=window.pendingCharacter;window.pendingCharacter=CharacterDraft.ensure();
- _saveCompanionAndContinue();CharacterDraft.data=window.pendingCharacter;window.pendingCharacter=before;
+ CharacterDraft.setCompanion(collectCompanionDraft());
+ document.getElementById('setupCharacterSummary').textContent=appearanceText(CharacterDraft.ensure());
+ showScreen('lifeSetupScreen')
 };
 const _chooseJob=window.chooseJob,_chooseHome=window.chooseHome;
 window.chooseJob=function(k){_chooseJob(k);CharacterDraft.setLife({job:k,home:selectedHome})};
 window.chooseHome=function(k){_chooseHome(k);CharacterDraft.setLife({job:selectedJob,home:k})};
-const _startGame=window.startGame;
+const legacyStartGame=window.startGame;
 window.startGame=function(){
  CharacterDraft.setLife({job:selectedJob,home:selectedHome});
- const before=window.pendingCharacter;window.pendingCharacter=CharacterDraft.finalize();
- try{return _startGame()}finally{window.pendingCharacter=before}
+ CharacterDraft.finalize();
+ return legacyStartGame()
 };
 
 /* ---------- Action registry ---------- */
