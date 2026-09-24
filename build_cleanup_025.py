@@ -301,7 +301,7 @@ window.performAction=Action.perform;
 const NPC=window.ETE_NPC_AUTONOMY={};
 NPC.ensureProfile=n=>{
  if(!n)return n;n.npcType||=(['cat','dog','bird'].includes(n.type)?'animal':'person');
- n.autonomy||={currentAction:n.currentAction||'待着',actionUntilHour:null,lastHour:null};return n;
+ if(!n.autonomy)n.autonomy={currentAction:n.currentAction||'待着',actionUntilHour:null,lastHour:null};return n;
 };
 NPC.seed=()=>{const g=window.G;if(!g)return;for(const n of (Array.isArray(g.npcs)?g.npcs:Object.values(g.npcs||{})))NPC.ensureProfile(n?.state||n)};
 NPC.hourlyTick=serial=>{
