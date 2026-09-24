@@ -97,6 +97,9 @@ s=s.replace('function startGame(){', 'function createGameFromDraft(){', 1)
 s=s.replace('character:pendingCharacter||collectCharacter(),job:selectedJob,home:selectedHome,',
             'character:window.ETE_CHARACTER_DRAFT.finalize(),job:selectedJob,home:selectedHome,')
 
+
+s=re.sub(r'^function petCat[(][^)]*[)][{].*?^}', '', s, flags=re.S|re.M)
+
 runtime=r'''<script id="ete-025-core">
 (()=>{
 'use strict';
@@ -206,7 +209,10 @@ instant('sit_down',1,['posture'],'你坐了下来。'); instant('stand_up',1,['p
 instant('take_item',1,['manipulation']); instant('store_item',1,['manipulation']);
 instant('change_clothes',3,['self_care','manipulation'],'你换好了衣服。');
 instant('groom_simple',2,['self_care','fine_motor']); instant('make_bed',3,['household']);
-instant('pet_animal',2,['social','manipulation']); instant('call_npc',0,['social']);
+instant('pet_animal',2,['social','manipulation'],ctx=>{
+ const cat=typeof getFavoriteCat==='function'?getFavoriteCat():null,n=cat?(NPC_DEFS[cat.id]?.name||cat.id):'猫';
+ return {head:`你伸手摸了摸${n}的额头和耳后。它微微眯起了眼睛。`,chin:`你挠了挠${n}的下巴。它抬起头，似乎很满意。`,back:`你顺着${n}的背轻轻摸了几下。尾巴尖缓慢地晃着。`,paws:`你试着碰了碰${n}的前爪。它先缩了一下，随后又把爪子放了回来。`}[ctx.petStyle]||`你摸了摸${n}。`
+}); instant('call_npc',0,['social']);
 instant('drink',1,['drinking']); instant('snack',3,['eating']); instant('wash_hands',1,['hygiene']);
 span('meal',15,['eating'],'你开始吃饭。','你吃完了。');
 span('shower',15,['hygiene'],'你开始洗澡。','你洗完澡，擦干了身体。');
@@ -239,6 +245,7 @@ Action.validate=(a,ctx)=>{
  if(a.id==='cook_breakfast'&&!(itemCount('bread')>0&&itemCount('eggs')>0))return '缺少吐司或鸡蛋。';
  if(a.id==='cook_instant'&&!(itemCount('instant')>0))return '家里没有方便面。';
  if(a.id==='shop_purchase'&&G.money<Number(ctx.price||0))return '钱不够。';
+ if(a.id==='pet_animal'){const cat=typeof getFavoriteCat==='function'?getFavoriteCat():null;if(!cat||cat.room!==G.currentRoom||!(cat.nearPlayer||cat.onLap))return '猫现在不在你伸手就能够到的位置。';}
  return null;
 };
 Action.resolve=(id,ctx={})=>{
@@ -249,7 +256,7 @@ Action.resolve=(id,ctx={})=>{
 };
 const log=(text,a,phase)=>{
  if(!text)return;
- const f=window.addLog||window.logEvent||window.pushLog;
+ const f=window.log||window.addLog||window.logEvent||window.pushLog;
  if(typeof f==='function'){f(text);return}
  const e=document.querySelector('#log,.log,#recentLog,.recent-log,[data-role="log"]');if(!e)return;
  const d=document.createElement('div');d.dataset.action=a.id;d.dataset.phase=phase;d.textContent=text;e.appendChild(d);e.scrollTop=e.scrollHeight;
@@ -290,7 +297,7 @@ Action.handle('sit_down',()=>{if(!roomHasSofa?.())return;G.playerPose={type:'sit
 Action.handle('stand_up',()=>{const cat=typeof getFavoriteCat==='function'?getFavoriteCat():null;if(cat?.onLap){cat.onLap=false;cat.nearPlayer=true;cat.sleeping=false;cat.currentAction='被你起身惊醒，留在沙发边'}G.playerPose=null});
 Action.handle('room_move_stairs',({roomId})=>{if(!roomId)return;G.currentRoom=roomId;closeStation?.()});
 Action.handle('work_shift',()=>{G.money+=JOBS[G.job].pay});
-Action.handle('outing_walk',()=>{});\nAction.handle('pet_animal',({petStyle})=>{if(typeof petCat==='function')petCat(petStyle||'head')});
+Action.handle('outing_walk',()=>{});\nAction.handle('pet_animal',()=>{const cat=getFavoriteCat();if(cat)cat.relation=Math.min(100,(cat.relation||0)+1)});
 Action.handle('make_bed',()=>{});
 Action.handle('groom_simple',()=>{G.raw.stress=Math.max(0,G.raw.stress-2)});
 Action.handle('groom_hair',()=>{});
