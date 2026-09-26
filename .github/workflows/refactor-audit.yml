@@ -165,7 +165,7 @@ jobs:
             before=r.time;r=await run('cook_instant');console.log('cook_result='+JSON.stringify(r));assert(minuteDiff(before,r.time)===15,'cook time');console.log('cook_instant=ok');
             before=r.time;r=await run('room_move',{roomId:'bedroom'});assert(minuteDiff(before,r.time)===1,'bedroom move');before=r.time;r=await run('sleep');assert(minuteDiff(before,r.time)===480,'sleep time');assert(r.raw.sleepDebt<30,'sleep effect');console.log('sleep=ok');
             before=r.time;const money=r.money;r=await run('work_shift',{minutes:540});assert(minuteDiff(before,r.time)===540,'work time');assert(r.money>money,'work pay');console.log('work_shift=ok');
-            const hourState=await page.evaluate(()=>({npcs:Object.values(G.npcs||{}).map(e=>{const n=e.state||e;return {id:e.id||n.id,type:n.type,last:n.autonomy?.lastHour,action:n.currentAction}}),logs:G.logs.slice(0,10)}));console.log('npc_state='+JSON.stringify(hourState));
+            const hourState=await page.evaluate(()=>{const g=window.G||window.game||window.state;return {stateKey:window.G===g?'G':window.game===g?'game':'state',npcs:Object.values(g.npcs||{}).map(e=>{const n=e.state||e;return {id:e.id||n.id,type:n.type,last:n.autonomy?.lastHour,action:n.currentAction}}),logs:g.logs.slice(0,10)}});console.log('npc_state='+JSON.stringify(hourState));
             assert(hourState.npcs.every(n=>n.last!=null),'NPC hourly tick missing');console.log('npc_hourly=ok');
             const duplicate=await page.evaluate(()=>G.logs.some((x,i,a)=>i&&x===a[i-1]));assert(!duplicate,'adjacent duplicate logs found');
             if(errors.length)throw new Error(errors.join('\n'));
