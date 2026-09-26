@@ -303,15 +303,16 @@ NPC.ensureProfile=n=>{
  if(!n)return n;n.npcType||=(['cat','dog','bird'].includes(n.type)?'animal':'person');
  if(!n.autonomy)n.autonomy={currentAction:n.currentAction||'待着',actionUntilHour:null,lastHour:null};return n;
 };
+NPC.state=()=>window.G||window.game||window.state||null;
 NPC.stateOf=entry=>entry?.state||entry;
-NPC.entries=()=>{const g=window.G;if(!g)return[];return Array.isArray(g.npcs)?g.npcs:Object.values(g.npcs||{})};
+NPC.entries=()=>{const g=NPC.state();if(!g)return[];return Array.isArray(g.npcs)?g.npcs:Object.values(g.npcs||{})};
 NPC.seed=()=>{for(const entry of NPC.entries())NPC.ensureProfile(NPC.stateOf(entry))};
 NPC.hourlyTick=serial=>{
- if(!window.G)return;NPC.seed();
+ if(!NPC.state())return;NPC.seed();
  for(const entry of NPC.entries()){const n=NPC.ensureProfile(NPC.stateOf(entry));if(!n)continue;const a=n.autonomy;if(a.lastHour===serial)continue;a.lastHour=serial}
 };
 Events.on('hour:crossed',({serial})=>NPC.hourlyTick(serial));
-Action.on('after',()=>{const serial=clockHourSerial(window.G);NPC.hourlyTick(serial)});
+Action.on('after',()=>{const serial=clockHourSerial(NPC.state());NPC.hourlyTick(serial)});
 Events.on('game:init',()=>NPC.seed());
 Events.on('save:loaded',()=>NPC.seed());
 document.addEventListener('DOMContentLoaded',()=>NPC.seed());
