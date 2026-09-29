@@ -192,10 +192,11 @@ const Events=window.ETE_EVENTS={
  emit(name,payload){for(const fn of this.hooks.get(name)||[]){try{fn(payload)}catch(e){console.error(e)}}}
 };
 const clockHourSerial=g=>Math.floor(Date.UTC(g?.year||2026,(g?.month||1)-1,g?.day||1,g?.hour||0)/3600000);
+const GameState=window.ETE_GAME_STATE={get:()=>G};
 const Time=window.ETE_TIME={
  advance(minutes,cause=null){
   const n=Math.max(0,Math.round(Number(minutes)||0));if(!n)return;
-  const before=clockHourSerial(window.G);advanceClockPrimitive(n);const after=clockHourSerial(window.G);
+  const before=clockHourSerial(GameState.get());advanceClockPrimitive(n);const after=clockHourSerial(GameState.get());
   Events.emit('time:advanced',{minutes:n,cause,beforeHour:before,afterHour:after});
   for(let h=Math.max(before+1,after-48);h<=after;h++)Events.emit('hour:crossed',{serial:h,cause});
  }
@@ -303,7 +304,7 @@ NPC.ensureProfile=n=>{
  if(!n)return n;n.npcType||=(['cat','dog','bird'].includes(n.type)?'animal':'person');
  if(!n.autonomy)n.autonomy={currentAction:n.currentAction||'待着',actionUntilHour:null,lastHour:null};return n;
 };
-NPC.state=()=>window.G||window.game||window.state||null;
+NPC.state=()=>GameState.get();
 NPC.stateOf=entry=>entry?.state||entry;
 NPC.entries=()=>{const g=NPC.state();if(!g)return[];return Array.isArray(g.npcs)?g.npcs:Object.values(g.npcs||{})};
 NPC.seed=()=>{for(const entry of NPC.entries())NPC.ensureProfile(NPC.stateOf(entry))};
@@ -342,7 +343,7 @@ Action.handle('shop_purchase',({itemId,price})=>{
 
 /* ---------- Sofa: one state, reacts to completed actions ---------- */
 const Sofa=window.ETE_SOFA_STATE={sitting:false,room:null,catNear:false,catLap:false};
-const room=()=>window.G?.currentRoom||window.G?.room||null;
+const room=()=>GameState.get()?.currentRoom||GameState.get()?.room||null;
 const stand=()=>{Sofa.sitting=false;Sofa.room=null;Sofa.catNear=false;Sofa.catLap=false};
 Action.on('after',({action})=>{
  if(action.id==='sit_down'){Sofa.sitting=true;Sofa.room=room()}
