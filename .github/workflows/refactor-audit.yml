@@ -128,10 +128,9 @@ jobs:
           JS
           node /tmp/ete-smoke.cjs
 
-      - name: Full gameplay browser test
+      - name: Online deployed gameplay browser test
         shell: bash
         run: |
-          python3 -m http.server 4174 --directory dist >/tmp/ete-full-http.log 2>&1 &
           cat >/tmp/ete-full.cjs <<'JS'
           const { chromium } = require(process.cwd() + '/node_modules/playwright');
           const assert=(v,m)=>{if(!v)throw new Error(m)};
@@ -141,7 +140,7 @@ jobs:
             const errors=[];
             page.on('pageerror',e=>errors.push('pageerror: '+e.message));
             page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
-            await page.goto('http://127.0.0.1:4174',{waitUntil:'networkidle'});
+            await page.goto('https://asahiruke.github.io/enjoy-the-end/?online-audit=1',{waitUntil:'networkidle'});
             await page.evaluate(()=>beginNewGame());
             await page.locator('#charName').fill('测试者');
             await page.evaluate(()=>finishCharacter());
