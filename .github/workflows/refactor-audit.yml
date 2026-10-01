@@ -1,0 +1,220 @@
+name: Refactor audit
+on:
+  push:
+    branches: [refactor/action-core-cleanup]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build audit target
+        shell: bash
+        run: |
+          mkdir -p dist
+          cat site.part00 site.part01 site.part02 site.part03 site.part04 site.part05 | base64 -d | gunzip > dist/index.html
+          python3 build_patch.py
+          python3 build_patch_018.py
+          python3 build_patch_020.py
+          python3 build_patch_021.py
+          python3 build_patch_022.py
+          python3 build_patch_023.py
+          python3 build_patch_024.py
+          python3 build_cleanup_025.py
+      - name: Action audit
+        shell: bash
+        run: |
+          echo '=== sofa legacy source ==='
+          grep -n -A45 -B5 'function sitOnSofa' dist/index.html || true
+          echo '=== advance calls ==='
+          grep -nE 'advance\(' dist/index.html || true
+          echo '=== legacy timers ==='
+          grep -nE 'setInterval|setTimeout' dist/index.html || true
+          echo '=== world inline action candidates ==='
+          grep -nE 'onclick="[^"]*(advance|sleep|shower|groom|cook|wear|buy|sitOnSofa|standUpFromSofa|petCat)' dist/index.html || true
+          echo '=== draft references ==='
+          grep -nE 'pendingCharacter|characterDraft|ETE_CHARACTER_DRAFT' dist/index.html || true
+          echo '=== trait definitions ==='\n          grep -nE 'good_endurance|poor_endurance|耐力良好|耐力不足|exclusiveGroup' dist/index.html || true\n          echo '=== character source blocks ==='
+          grep -n -A20 -B8 -E 'pendingCharacter|characterDraft|TRAIT_DEFS|finishCharacter|startGame|lifeSetup|characterReview' dist/index.html || true
+          echo '=== patch character bridges ==='
+          grep -n -A80 -B5 -E 'CharacterDraft|characterReviewScreen|originalLifeConfirm|saveTraitsAndContinue' dist/index.html || true
+          echo '=== creation runtime source ==='
+          grep -n -A120 -B10 -E '^function startGame|^function saveCompanionAndContinue|^function finishCharacter|^function chooseJob|^function chooseHome' dist/index.html || true
+          echo '=== character review runtime ==='
+          grep -n -A160 -B10 -E 'characterReviewScreen|showCharacterReview|ETE_CHARACTER_SUMMARY' dist/index.html || true
+          echo '=== pet/log source ==='
+          grep -n -A45 -B5 -E '^function petCat|const log=|function log\(' dist/index.html || true
+          echo '=== inventory helpers ==='
+          grep -n -A25 -B10 -E 'function (itemCount|consume)|const (itemCount|consume)' dist/index.html || true
+          echo '=== inventory helper source ==='
+          grep -n -A15 -B5 -E 'itemCount|function consume|const consume|function count|stacks.*itemId' dist/index.html || true
+          echo '=== action ids ==='
+          grep -oE 'data-action-id="[^"]+"' dist/index.html | sort | uniq -c || true
+
+      - name: Refactor invariants
+        shell: bash
+        run: |
+          echo "advance_count=$(grep -cE 'advance\(' dist/index.html)"
+          echo "pending_count=$(grep -c 'pendingCharacter' dist/index.html || true)"
+          echo "interval_count=$(grep -c 'setInterval' dist/index.html || true)"
+          echo "trait_bridge_count=$(grep -c 'ETE_TRAIT_GROUP_FIX' dist/index.html || true)"
+          echo "legacy_function_advance=$(grep -c 'function advance(' dist/index.html || true)"
+          echo "inline_world=$(grep -cE 'onclick=\"[^\"]*(advance|sleep|shower|groom|cook|wear|buy|sitOnSofa|standUpFromSofa|petCat)' dist/index.html || true)"
+          echo "install_clock=$(grep -c 'installClock' dist/index.html || true)"
+          echo "window_advance=$(grep -c 'window.advance' dist/index.html || true)"
+          echo "literal_slash_n=$(grep -c '\\\\nAction.handle' dist/index.html || true)"
+          test "$(grep -cE 'advance\(' dist/index.html)" -eq 2
+          ! grep -q 'function advance(' dist/index.html
+          ! grep -q 'pendingCharacter' dist/index.html
+          ! grep -q 'setInterval' dist/index.html
+          ! grep -qE 'onclick="[^"]*(advance|sleep|shower|groom|cook|wear|buy|sitOnSofa|standUpFromSofa|petCat)' dist/index.html
+          ! grep -q 'ETE_TRAIT_GROUP_FIX' dist/index.html
+          ! grep -q 'installClock' dist/index.html
+          ! grep -q 'window.advance' dist/index.html
+          ! grep -Fq '\\nAction.handle' dist/index.html
+          ! grep -q '^function petCat' dist/index.html
+
+      - name: JavaScript syntax audit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re, pathlib
+          s=pathlib.Path('dist/index.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.S|re.I)
+          out=pathlib.Path('/tmp/ete-js');out.mkdir(exist_ok=True)
+          for i,js in enumerate(scripts):
+              (out/f'script-{i:02d}.js').write_text(js,encoding='utf-8')
+          print(f'scripts={len(scripts)}')
+          PY
+          for f in /tmp/ete-js/*.js; do if ! node --check "$f"; then nl -ba "$f" | sed -n '520,565p'; exit 1; fi; done
+
+      - name: Browser runtime smoke test
+        shell: bash
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 --no-save >/dev/null 2>&1
+          npx playwright install chromium --with-deps >/dev/null 2>&1
+          python3 -m http.server 4173 --directory dist >/tmp/ete-http.log 2>&1 &
+          cat >/tmp/ete-smoke.cjs <<'JS'
+          const { chromium } = require(process.cwd() + '/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage({viewport:{width:390,height:844}});
+            const errors=[];
+            page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+            page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+            await page.goto('http://127.0.0.1:4173',{waitUntil:'networkidle'});
+            console.log('title='+await page.title());
+            console.log('buttons='+(await page.locator('button').allTextContents()).slice(0,20).join(' | '));
+            await page.evaluate(()=>beginNewGame());
+            console.log('character_visible='+await page.locator('#characterScreen').evaluate(e=>!e.classList.contains('hidden')));
+            await page.evaluate(()=>finishCharacter());
+            console.log('traits_visible='+await page.locator('#traitScreen').evaluate(e=>!e.classList.contains('hidden')));
+            const state=await page.evaluate(()=>({
+              hasDraft:!!window.ETE_CHARACTER_DRAFT,
+              pending:typeof window.pendingCharacter,
+              hasAction:!!window.ETE_ACTIONS,
+              hasTime:!!window.ETE_TIME,
+              hasNPC:!!window.ETE_NPC_AUTONOMY
+            }));
+            console.log('runtime='+JSON.stringify(state));
+            if(!state.hasDraft||state.pending!=='undefined'||!state.hasAction||!state.hasTime||!state.hasNPC)errors.push('core runtime invariant failed');
+            if(errors.length){console.error(errors.join('\n'));await browser.close();process.exit(1)}
+            await page.screenshot({path:'/tmp/ete-smoke.png',fullPage:true});
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/ete-smoke.cjs
+
+      - name: Full gameplay browser test
+        shell: bash
+        run: |
+          python3 -m http.server 4174 --directory dist >/tmp/ete-full-http.log 2>&1 &
+          cat >/tmp/ete-full.cjs <<'JS'
+          const { chromium } = require(process.cwd() + '/node_modules/playwright');
+          const assert=(v,m)=>{if(!v)throw new Error(m)};
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage({viewport:{width:390,height:844}});
+            const errors=[];
+            page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+            page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())});
+            await page.goto('http://127.0.0.1:4174',{waitUntil:'networkidle'});
+            await page.evaluate(()=>beginNewGame());
+            await page.locator('#charName').fill('测试者');
+            await page.evaluate(()=>finishCharacter());
+            await page.evaluate(()=>saveTraitsAndContinue());
+            const screen=await page.evaluate(()=>['companionScreen','lifeSetupScreen'].find(id=>!document.getElementById(id).classList.contains('hidden')));
+            if(screen==='companionScreen')await page.evaluate(()=>saveCompanionAndContinue());
+            await page.evaluate(()=>{chooseJob('office');chooseHome('normalApartment');startGame()});
+            assert(await page.locator('#gameScreen').evaluate(e=>!e.classList.contains('hidden')),'game screen not visible');
+            let snap=await page.evaluate(()=>({time:[G.year,G.month,G.day,G.hour,G.minute],money:G.money,room:G.currentRoom,logs:[...G.logs],raw:{...G.raw},pose:G.playerPose,cat:getFavoriteCat?.()}));
+            console.log('game_start='+JSON.stringify({time:snap.time,money:snap.money,room:snap.room,logs:snap.logs.slice(0,3)}));
+            const run=async(id,ctx={})=>await page.evaluate(([id,ctx])=>{const a=ETE_ACTIONS.perform(id,ctx);return {id:a?.id,time:[G.year,G.month,G.day,G.hour,G.minute],money:G.money,room:G.currentRoom,logs:G.logs.slice(0,5),raw:{...G.raw},pose:G.playerPose}},[id,ctx]);
+            const minuteDiff=(a,b)=>{
+              const da=Date.UTC(a[0],a[1]-1,a[2],a[3],a[4]),db=Date.UTC(b[0],b[1]-1,b[2],b[3],b[4]);return (db-da)/60000;
+            };
+            let before=snap.time,r=await run('room_move',{roomId:'living'});assert(minuteDiff(before,r.time)===1,'room_move time');assert(r.room==='living','room_move room');console.log('room_move=ok');
+            before=r.time;r=await run('sit_down');assert(minuteDiff(before,r.time)===1,'sit time');assert(r.pose?.type==='sitting','sit pose');console.log('sit_down=ok');
+            before=r.time;r=await run('rest_short');assert(minuteDiff(before,r.time)===10,'rest time');console.log('rest_short=ok');
+            before=r.time;r=await run('stand_up');assert(minuteDiff(before,r.time)===1,'stand time');assert(!r.pose,'stand pose');console.log('stand_up=ok');
+            before=r.time;r=await run('room_move',{roomId:'bathroom'});assert(minuteDiff(before,r.time)===1,'bathroom move');before=r.time;r=await run('shower');assert(minuteDiff(before,r.time)===15,'shower time');assert(r.raw.dirt===0&&r.raw.odor===0,'shower effects');console.log('shower=ok');
+            before=r.time;r=await run('room_move',{roomId:'kitchen'});assert(minuteDiff(before,r.time)===1,'kitchen move');await page.evaluate(()=>{G.stacks.push({id:'test-instant',itemId:'instant',qty:1,room:'kitchen',containerId:'cupboard1'})});
+            before=r.time;r=await run('cook_instant');console.log('cook_result='+JSON.stringify(r));assert(minuteDiff(before,r.time)===15,'cook time');console.log('cook_instant=ok');
+            before=r.time;r=await run('room_move',{roomId:'bedroom'});assert(minuteDiff(before,r.time)===1,'bedroom move');before=r.time;r=await run('sleep');assert(minuteDiff(before,r.time)===480,'sleep time');assert(r.raw.sleepDebt<30,'sleep effect');console.log('sleep=ok');
+            before=r.time;const money=r.money;r=await run('work_shift',{minutes:540});assert(minuteDiff(before,r.time)===540,'work time');assert(r.money>money,'work pay');console.log('work_shift=ok');
+            const hourState=await page.evaluate(()=>{const g=window.ETE_GAME_STATE.get();return {stateKey:'ETE_GAME_STATE',npcs:Object.values(g.npcs||{}).map(e=>{const n=e.state||e;return {id:e.id||n.id,type:n.type,last:n.autonomy?.lastHour,action:n.currentAction}}),logs:g.logs.slice(0,10)}});console.log('npc_state='+JSON.stringify(hourState));
+            assert(hourState.npcs.every(n=>n.last!=null),'NPC hourly tick missing');console.log('npc_hourly=ok');
+            const duplicate=await page.evaluate(()=>G.logs.some((x,i,a)=>i&&x===a[i-1]));assert(!duplicate,'adjacent duplicate logs found');
+            if(errors.length)throw new Error(errors.join('\n'));
+            console.log('final='+JSON.stringify({time:r.time,money:r.money,logs:r.logs}));
+            await page.screenshot({path:'/tmp/ete-full.png',fullPage:true});
+            await browser.close();
+          })().catch(e=>{console.error(e.stack||e);process.exit(1)});
+          JS
+          node /tmp/ete-full.cjs
+
+      - name: Undefined function static audit
+        if: always()
+        shell: bash
+        run: |
+          npm install eslint@9 --no-save >/dev/null 2>&1
+          cat >/tmp/ete-eslint.mjs <<'JS'
+          import { createRequire } from 'module';
+          const require=createRequire(process.cwd()+'/package.json');
+          const { Linter }=require('eslint');
+          import fs from 'fs';
+          const html=fs.readFileSync('dist/index.html','utf8');
+          const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(x=>x[1]);
+          let source=scripts.join('\n;\n');
+          const windowFns=[...source.matchAll(/\bwindow\.([A-Za-z_$][\w$]*)\s*=\s*function\b/g)].map(m=>m[1]);
+          const globalsFromWindow=Object.fromEntries(windowFns.map(n=>[n,'readonly']));
+          const linter=new Linter({configType:'flat'});
+          const globals={window:'readonly',document:'readonly',localStorage:'readonly',console:'readonly',Date:'readonly',Math:'readonly',JSON:'readonly',Object:'readonly',Array:'readonly',Number:'readonly',String:'readonly',Boolean:'readonly',Set:'readonly',Map:'readonly',URL:'readonly',Blob:'readonly',structuredClone:'readonly',setTimeout:'readonly',clearTimeout:'readonly',confirm:'readonly',alert:'readonly',location:'readonly',innerWidth:'readonly'};
+          const msgs=linter.verify(source,[{languageOptions:{ecmaVersion:'latest',sourceType:'script',globals:{...globals,...globalsFromWindow}},rules:{'no-undef':'error'}}]);
+          const undef=msgs.filter(m=>m.ruleId==='no-undef');
+          const grouped={};
+          for(const m of undef){const name=(m.message.match(/'([^']+)'/)||[])[1]||m.message;(grouped[name]??=[]).push(m.line)}
+          console.log('undefined_symbols='+Object.keys(grouped).length);
+          for(const [name,lines] of Object.entries(grouped).sort())console.log(name+': '+[...new Set(lines)].slice(0,12).join(','));
+          fs.writeFileSync('/tmp/ete-undefined.json',JSON.stringify(grouped,null,2));
+          JS
+          node /tmp/ete-eslint.mjs
+          echo '=== likely stale function calls ==='
+          python3 - <<'PY'
+          import json,re,pathlib
+          d=json.load(open('/tmp/ete-undefined.json'))
+          html=pathlib.Path('dist/index.html').read_text()
+          builtins={'event','navigator','crypto','performance','FileReader','HTMLElement','CustomEvent'}
+          suspects=[]
+          for name,lines in d.items():
+              if name in builtins: continue
+              if re.search(r'\b'+re.escape(name)+r'\s*\(',html):
+                  suspects.append((name,lines))
+          print('stale_call_suspects=',len(suspects))
+          for n,ls in suspects: print(n,ls)
+          if suspects:
+              raise SystemExit(1)
+          PY
