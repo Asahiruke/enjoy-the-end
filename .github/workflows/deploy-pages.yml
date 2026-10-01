@@ -1,4 +1,5 @@
 name: Deploy Enjoy the End
+# Canonical 0.25 cleanup deployment
 on:
   push:
     branches: [main]
