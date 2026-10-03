@@ -35,8 +35,8 @@ runtime=f"""
 """
 # TRAIT_DEFS is lexical in the original script; expose it without changing the save shape.
 idx=s.index("];",s.index("const TRAIT_DEFS = ["))+2
-s=s[:idx]+"\\nwindow.ETE_TRAIT_DEFS=TRAIT_DEFS;"+s[idx:]
+s=s[:idx]+"\nwindow.ETE_TRAIT_DEFS=TRAIT_DEFS;"+s[idx:]
 runtime=runtime.replace("for(const trait of TRAIT_DEFS)","for(const trait of window.ETE_TRAIT_DEFS||[])")
-s=s.replace("</body>",runtime+"\\n</body>",1)
+s=s.replace("</body>",runtime+"\n</body>",1)
 p.write_text(s,encoding="utf-8")
 print("trait_i18n_fields="+str(len(messages)))
