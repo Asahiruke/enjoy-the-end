@@ -42,7 +42,7 @@ runtime=f"""<script>
   document.documentElement.lang=I.locale;
  }};
  I.setLocale=locale=>{{I.locale=locale;I.apply();if(typeof window.render==='function')window.render()}};
- addEventListener('DOMContentLoaded',()=>I.apply());
+ window.addEventListener('DOMContentLoaded',()=>I.apply());
 }})();
 </script>"""
 s=s.replace("</body>",runtime+"\n</body>",1)
