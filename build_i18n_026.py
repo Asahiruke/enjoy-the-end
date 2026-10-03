@@ -22,14 +22,11 @@ def repl(m):
     # Never touch script/style/template source.
     key=key_for(clean);messages[key]=clean
     lead=text[:len(text)-len(text.lstrip())];trail=text[len(text.rstrip()):]
-    return f'{open_tag}<span data-i18n="{key}">{lead}{clean}{trail}</span>{close}'
+    return f'{open_tag[:-1]} data-i18n="{key}">{lead}{clean}{trail}{close}'
 
 # Only ordinary text-bearing tags; avoids corrupting scripts/styles.
 pat=re.compile(r"(<(?:button|label|h[1-6]|p|small|strong|option|div|span)(?:\s[^>]*)?>)([^<>]+)(</(?:button|label|h[1-6]|p|small|strong|option|div|span)>)",re.I)
-prev=None
-while prev!=s:
-    prev=s
-    s=pat.sub(repl,s)
+s=pat.sub(repl,s)
 
 payload=json.dumps(messages,ensure_ascii=False,separators=(",",":"))
 runtime=f"""<script>
