@@ -298,22 +298,57 @@ Action.perform=(id,ctx={})=>{
 };
 window.performAction=Action.perform;
 
-/* ---------- NPC autonomy: subscribes to world events; never owns the clock ---------- */
+/* ---------- NPC autonomy: event-driven decisions; never owns the clock ---------- */
 const NPC=window.ETE_NPC_AUTONOMY={};
-NPC.ensureProfile=n=>{
- if(!n)return n;n.npcType||=(['cat','dog','bird'].includes(n.type)?'animal':'person');
- if(!n.autonomy)n.autonomy={currentAction:n.currentAction||'待着',actionUntilHour:null,lastHour:null};return n;
+NPC.TEXT={
+ idle:'待着',
+ move:{animal:'在房间里闲逛',person:'去了别的房间'},
+ approach:{animal:'来到你所在的房间附近',person:'来到你所在的房间'},
+ special:{cat:[
+  '忽然在房间里疯跑了一阵。','钻到家具下面待了一会儿。',
+  '对墙角某个你没注意到的东西研究了很久。','突然停住，竖起耳朵听着远处的声音。'
+ ]},
+ scenes:{
+  sofa:{person:{human:[
+   {id:'sit',weight:28,text:'坐在沙发上休息。'},
+   {id:'read',weight:13,text:'坐在沙发上安静地看着手边的东西。',personality:['quiet','studious']},
+   {id:'watch_room',weight:10,text:'靠在沙发上观察着房间里的动静。',personality:['cautious','quiet']}
+  ]},animal:{cat:[
+   {id:'curl',weight:30,text:'蜷在沙发的一角休息。',personality:['sleepy','calm'],duration:2},
+   {id:'knead',weight:14,text:'在沙发软垫上踩了几下。'},
+   {id:'armrest',weight:12,text:'蹲在沙发扶手上，尾巴垂在边缘。',personality:['curious']},
+   {id:'play',weight:10,text:'在沙发上扑弄着看不见的东西。',personality:['energetic','playful']}
+  ],dog:[{id:'rest',weight:28,text:'趴在沙发旁边休息。',duration:2},{id:'watch',weight:14,text:'守在沙发附近观察房间。',personality:['alert']}]}},
+  window:{person:{human:[{id:'look_out',weight:20,text:'站在窗边看着外面的情况。',personality:['cautious','observant']},{id:'idle',weight:8,text:'在窗边发了一会儿呆。',personality:['quiet']}]},animal:{cat:[{id:'watch',weight:30,text:'坐在窗边盯着外面的动静。',personality:['curious','alert']},{id:'sun',weight:12,text:'在窗边找了个舒服的位置趴下。',personality:['sleepy','calm'],duration:2}],bird:[{id:'perch',weight:24,text:'停在靠近窗边的位置观察外面。'}]}},
+  bed:{person:{human:[{id:'sleep',weight:25,text:'躺在床上休息。',personality:['tired','quiet'],duration:2},{id:'sit',weight:10,text:'坐在床边整理自己的东西。',personality:['orderly']}]},animal:{cat:[{id:'sleep',weight:34,text:'在床上团成一团睡觉。',personality:['sleepy','affectionate'],duration:2},{id:'blanket',weight:12,text:'在被子附近踩来踩去，最后找了个位置趴下。'}]}},
+  floor_open:{person:{human:[{id:'pace',weight:10,text:'在房间里来回走动。',personality:['restless']},{id:'idle',weight:18,text:'在房间里安静地待着。',personality:['quiet','calm']}]},animal:{cat:[{id:'walk',weight:24,text:'在房间里慢慢踱步。'},{id:'groom',weight:22,text:'停下来舔爪子，认真地洗起脸。'},{id:'zoom',weight:7,text:'突然小跑着穿过房间。',personality:['energetic','playful']},{id:'observe',weight:15,text:'趴在地上观察着房间里的动静。',personality:['curious','cautious']}],dog:[{id:'walk',weight:20,text:'在房间里走了一圈。'},{id:'rest',weight:20,text:'找了个地方趴下休息。',duration:2}],bird:[{id:'hop',weight:18,text:'在附近轻快地移动着。'}]}}
+ }
 };
+NPC.pickWeighted=entries=>{const xs=entries.filter(x=>x&&x.weight>0),total=xs.reduce((s,x)=>s+x.weight,0);if(!total)return null;let r=Math.random()*total;for(const x of xs){r-=x.weight;if(r<=0)return x}return xs.at(-1)};
+NPC.ensureProfile=n=>{if(!n)return n;n.npcType||=(['cat','dog','bird'].includes(n.type)?'animal':'person');n.species||=(n.npcType==='animal'?(n.type||'animal'):null);if(n.npcType==='animal')n.animalPersonality||=n.personalityTags||[];else n.humanPersonality||=n.personalityTags||['calm'];n.autonomy||={currentAction:n.currentAction||NPC.TEXT.idle,actionUntilHour:null,targetScene:null,lastHour:null};return n};
 NPC.state=()=>GameState.get();
 NPC.stateOf=entry=>entry?.state||entry;
 NPC.entries=()=>{const g=NPC.state();if(!g)return[];return Array.isArray(g.npcs)?g.npcs:Object.values(g.npcs||{})};
 NPC.seed=()=>{for(const entry of NPC.entries())NPC.ensureProfile(NPC.stateOf(entry))};
-NPC.hourlyTick=serial=>{
- if(!NPC.state())return;NPC.seed();
- for(const entry of NPC.entries()){const n=NPC.ensureProfile(NPC.stateOf(entry));if(!n)continue;const a=n.autonomy;if(a.lastHour===serial)continue;a.lastHour=serial}
+NPC.personality=n=>n.npcType==='animal'?(n.animalPersonality||[]):(n.humanPersonality||[]);
+NPC.rooms=g=>Array.isArray(g?.rooms)?g.rooms:Object.values(g?.rooms||{});
+NPC.roomById=(g,id)=>NPC.rooms(g).find(r=>r?.id===id)||{id,name:id,desc:''};
+NPC.roomScenes=(g,id)=>{const r=NPC.roomById(g,id),blob=((r.name||'')+' '+(r.desc||'')+' '+JSON.stringify(r)).toLowerCase(),out=['floor_open'];if(/沙发|sofa|couch/.test(blob)||['living','living_room'].includes(id))out.push('sofa');if(/窗|window/.test(blob))out.push('window');if(/床|bed/.test(blob)||/bedroom/.test(id))out.push('bed');return [...new Set(out)]};
+NPC.eligible=(g,n,roomId)=>{const type=n.npcType,sub=type==='animal'?(n.species||n.type):(n.personSubtype||'human'),tags=NPC.personality(n),out=[];for(const scene of NPC.roomScenes(g,roomId)){for(const rule of NPC.TEXT.scenes[scene]?.[type]?.[sub]||[]){let weight=rule.weight||1;if(rule.personality?.some(t=>tags.includes(t)))weight*=1.8;out.push({scene,rule,weight})}}return out};
+NPC.otherRoom=(g,n)=>{const ids=NPC.rooms(g).map(r=>r?.id).filter(Boolean).filter(id=>id!==n.room);return ids.length?ids[Math.floor(Math.random()*ids.length)]:n.room};
+NPC.tick=(n,serial)=>{const g=NPC.state();if(!g||!n)return;NPC.ensureProfile(n);const a=n.autonomy;if(a.lastHour===serial)return;const tags=NPC.personality(n);if(a.actionUntilHour!=null&&serial<a.actionUntilHour&&Math.random()<.82){a.lastHour=serial;return}
+ let keep=55,local=20,move=15,approach=7,special=3;if(tags.includes('sleepy'))keep+=8;if(tags.includes('energetic')||tags.includes('restless')){keep-=10;local+=6;move+=4}if(tags.some(t=>['social','sociable','affectionate'].includes(t)))approach+=6;if(tags.includes('independent')||tags.includes('timid'))approach-=3;
+ const mode=NPC.pickWeighted([{id:'keep',weight:keep},{id:'local',weight:local},{id:'move',weight:move},{id:'approach',weight:Math.max(1,approach)},{id:'special',weight:special}])?.id||'keep';
+ if(mode==='keep'){a.lastHour=serial;return}
+ if(mode==='move'){n.room=NPC.otherRoom(g,n);n.currentAction=n.npcType==='animal'?NPC.TEXT.move.animal:NPC.TEXT.move.person;a.currentAction=n.currentAction;a.targetScene=null;a.actionUntilHour=serial+1;a.lastHour=serial;return}
+ if(mode==='approach'){n.room=g.currentRoom||g.playerRoom||'living';n.currentAction=n.npcType==='animal'?NPC.TEXT.approach.animal:NPC.TEXT.approach.person;a.currentAction=n.currentAction;a.targetScene='player';a.actionUntilHour=serial+1;a.lastHour=serial;return}
+ if(mode==='special'&&n.npcType==='animal'&&(n.species||n.type)==='cat'){const lines=NPC.TEXT.special.cat;n.currentAction=lines[Math.floor(Math.random()*lines.length)];a.currentAction=n.currentAction;a.targetScene='special';a.actionUntilHour=serial+1;a.lastHour=serial;return}
+ const chosen=NPC.pickWeighted(NPC.eligible(g,n,n.room||(g.currentRoom||'living')));if(chosen){n.currentAction=chosen.rule.text;a.currentAction=n.currentAction;a.targetScene=chosen.scene;a.actionUntilHour=serial+(chosen.rule.duration||1)}a.lastHour=serial;
 };
+NPC.hourlyTick=serial=>{if(!NPC.state())return;NPC.seed();for(const entry of NPC.entries())NPC.tick(NPC.stateOf(entry),serial)};
+NPC.reactToPlayerAction=(action,ctx={})=>{NPC.seed();Events.emit('npc:reaction',{action,ctx,npcs:NPC.entries()})};
 Events.on('hour:crossed',({serial})=>NPC.hourlyTick(serial));
-Action.on('after',()=>{const serial=clockHourSerial(NPC.state());NPC.hourlyTick(serial)});
+Action.on('after',({action,ctx})=>NPC.reactToPlayerAction(action,ctx));
 Events.on('game:init',()=>NPC.seed());
 Events.on('save:loaded',()=>NPC.seed());
 document.addEventListener('DOMContentLoaded',()=>NPC.seed());
