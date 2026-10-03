@@ -18,6 +18,7 @@ def migrate(m):
     return f'{field}Key:"{key}"'
 block2=re.sub(r'\b(name|desc):"([^"]*)"',migrate,block)
 assert len(messages)>20, len(messages)
+assert len(messages)%2==0, "Incomplete trait translation pairs"
 s=s[:start]+block2+s[end:]
 payload=json.dumps(messages,ensure_ascii=False,separators=(",",":"))
 # Attach compatibility accessors after the core runtime has created ETE_I18N.
@@ -26,7 +27,7 @@ runtime=f"""
 (()=>{{
  const I=window.ETE_I18N;if(!I)return;
  Object.assign(I.messages['zh-CN']||={{}},{payload});
- for(const trait of TRAIT_DEFS)for(const field of ['name','desc']){{
+ for(const trait of window.ETE_TRAIT_DEFS||[])for(const field of ['name','desc']){{
   const key=trait[field+'Key'];
   if(key)Object.defineProperty(trait,field,{{configurable:true,enumerable:false,get:()=>I.t(key)}});
  }}
@@ -36,7 +37,7 @@ runtime=f"""
 # TRAIT_DEFS is lexical in the original script; expose it without changing the save shape.
 idx=s.index("];",s.index("const TRAIT_DEFS = ["))+2
 s=s[:idx]+"\nwindow.ETE_TRAIT_DEFS=TRAIT_DEFS;"+s[idx:]
-runtime=runtime.replace("for(const trait of TRAIT_DEFS)","for(const trait of window.ETE_TRAIT_DEFS||[])")
+
 s=s.replace("</body>",runtime+"\n</body>",1)
 p.write_text(s,encoding="utf-8")
 print("trait_i18n_fields="+str(len(messages)))
