@@ -24,7 +24,11 @@ jobs:
           python3 build_patch_023.py
           python3 build_patch_024.py
           python3 build_cleanup_025.py
-      - name: Localization inventory\n        shell: bash\n        run: python3 i18n_audit.py\n\n      - name: Action audit
+      - name: Localization inventory
+        shell: bash
+        run: python3 i18n_audit.py
+
+      - name: Action audit
         shell: bash
         run: |
           echo '=== sofa legacy source ==='
