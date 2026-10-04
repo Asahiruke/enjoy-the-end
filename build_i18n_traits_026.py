@@ -55,6 +55,7 @@ appearance_new="""function appearanceText(c){
 }"""
 s,n=appearance_re.subn(lambda _:appearance_new,s,count=1)
 assert n==1,"Appearance summary function not found"
+assert "character.appearance.summary" in s and "window.ETE_I18N?.t" in s, "Appearance renderer not localized"
 # Keep this registry independent of the saved CharacterDraft.
 payload=json.dumps(messages,ensure_ascii=False,separators=(",",":"))
 # Attach compatibility accessors after the core runtime has created ETE_I18N.
