@@ -56,6 +56,13 @@ appearance_new="""function appearanceText(c){
 s,n=appearance_re.subn(lambda _:appearance_new,s,count=1)
 assert n==1,"Appearance summary function not found"
 assert "character.appearance.summary" in s and "window.ETE_I18N?.t" in s, "Appearance renderer not localized"
+# Trait budget preview is dynamic UI, not a saved trait value.
+messages["character.traits.final_preview"]="最终属性预览：体质 {con} / 力量 {str} / 敏捷 {agi}"
+messages["character.traits.insufficient"]="　点数不足，无法保存。"
+old='warn.textContent=`最终属性预览：体质 ${fin.con} / 力量 ${fin.str} / 敏捷 ${fin.agi}` + (left<0?"　点数不足，无法保存。":"");'
+new='warn.textContent=window.ETE_I18N.t("character.traits.final_preview",fin) + (left<0?window.ETE_I18N.t("character.traits.insufficient"):"");'
+assert s.count(old)==1,"Trait budget renderer changed"
+s=s.replace(old,new,1)
 # Keep this registry independent of the saved CharacterDraft.
 payload=json.dumps(messages,ensure_ascii=False,separators=(",",":"))
 # Attach compatibility accessors after the core runtime has created ETE_I18N.
