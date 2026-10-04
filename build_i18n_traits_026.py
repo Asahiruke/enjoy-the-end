@@ -42,7 +42,7 @@ s=s[:idx]+"\nwindow.ETE_TRAIT_DEFS=TRAIT_DEFS;"+s[idx:]
 
 s=s.replace("</body>",runtime+"\n</body>",1)
 p.write_text(s,encoding="utf-8")
-assert s.index("window.ETE_I18N=") < s.index('id="ete-026-traits-i18n"'), "Traits initialized before I18N"
+assert 'get:()=>I.t(key)' in s, 'Trait display must resolve locale at read time'\nassert s.index("window.ETE_I18N=") < s.index('id="ete-026-traits-i18n"'), "Traits initialized before I18N"
 assert "window.ETE_TRAIT_DEFS=TRAIT_DEFS;" in s, "Trait registry bridge missing"
 assert "for(const trait of window.ETE_TRAIT_DEFS||[])" in s, "Trait runtime registry missing"
 print("trait_i18n_fields="+str(len(messages)))
