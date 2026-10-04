@@ -30,6 +30,20 @@ for value,key in validation.items():
     assert block.count("'"+value+"'")==1, "Validation source changed: "+value
     messages[key]=value
     block=block.replace("'"+value+"'","window.ETE_I18N.t('"+key+"')",1)
+# Localize the dynamic pet interaction log without changing NPC identity/state.
+pet_templates={
+ "head":"你伸手摸了摸{name}的额头和耳后。它微微眯起了眼睛。",
+ "chin":"你挠了挠{name}的下巴。它抬起头，似乎很满意。",
+ "back":"你顺着{name}的背轻轻摸了几下。尾巴尖缓慢地晃着。",
+ "paws":"你试着碰了碰{name}的前爪。它先缩了一下，随后又把爪子放了回来。",
+ "default":"你摸了摸{name}。"
+}
+for style,value in pet_templates.items():
+    key="action.pet_animal."+style
+    messages[key]=value
+    old=("\`"+value.replace("{name}","\${n}")+"\`")
+    if old in block:
+        block=block.replace(old,"window.ETE_I18N.t('"+key+"',{name:n})",1)
 # Message resolution happens at log emission, not when the registry is constructed.
 old="return typeof v==='function'?v(ctx,a):v"
 assert block.count(old)==1
