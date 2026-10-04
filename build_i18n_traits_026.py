@@ -18,7 +18,8 @@ def migrate(m):
     return f'{field}Key:"{key}"'
 block2=re.sub(r'\b(name|desc):"([^"]*)"',migrate,block)
 assert len(messages)>20, len(messages)
-assert len(messages)%2==0, "Incomplete trait translation pairs"
+trait_ids=set(re.findall(r'\\bid:"([^"]+)"',block))
+assert set(messages)=={f"trait.{ident}.{field}" for ident in trait_ids for field in ("name","desc")}, "Incomplete trait translation pairs"
 s=s[:start]+block2+s[end:]
 payload=json.dumps(messages,ensure_ascii=False,separators=(",",":"))
 # Attach compatibility accessors after the core runtime has created ETE_I18N.
