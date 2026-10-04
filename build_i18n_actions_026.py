@@ -41,9 +41,9 @@ pet_templates={
 for style,value in pet_templates.items():
     key="action.pet_animal."+style
     messages[key]=value
-    old=("\`"+value.replace("{name}","\${n}")+"\`")
-    if old in block:
-        block=block.replace(old,"window.ETE_I18N.t('"+key+"',{name:n})",1)
+    old=("\\x60"+value.replace("{name}","\x24{n}")+"\\x60")
+    assert block.count(old)==1, "Pet interaction source changed: "+style
+    block=block.replace(old,"window.ETE_I18N.t('"+key+"',{name:n})",1)
 # Message resolution happens at log emission, not when the registry is constructed.
 old="return typeof v==='function'?v(ctx,a):v"
 assert block.count(old)==1
