@@ -63,6 +63,25 @@ old='warn.textContent=`最终属性预览：体质 ${fin.con} / 力量 ${fin.str
 new='warn.textContent=window.ETE_I18N.t("character.traits.final_preview",fin) + (left<0?window.ETE_I18N.t("character.traits.insufficient"):"");'
 assert s.count(old)==1,"Trait budget renderer changed"
 s=s.replace(old,new,1)
+# Companion preview phrases are presentation-only; never translate persisted option values.
+pet_phrases={
+ "character.pet.eyes":"眼睛是{value}",
+ "character.pet.tail":"尾巴{value}",
+ "character.pet.ears":"耳朵{value}",
+ "character.pet.nose_pad":"鼻头是{nose}，肉垫是{pad}",
+ "character.pet.join":"{parts}。"
+}
+messages.update(pet_phrases)
+pet_replacements={
+ 'parts.push(`眼睛是${eye}`);':'parts.push(window.ETE_I18N.t("character.pet.eyes",{value:eye}));',
+ 'parts.push(`尾巴${tail}`);':'parts.push(window.ETE_I18N.t("character.pet.tail",{value:tail}));',
+ 'parts.push(`耳朵${ears}`);':'parts.push(window.ETE_I18N.t("character.pet.ears",{value:ears}));',
+ 'parts.push(`鼻头是${nose}，肉垫是${pad}`);':'parts.push(window.ETE_I18N.t("character.pet.nose_pad",{nose,pad}));',
+ 'el.textContent=parts.join("，")+"。";':'el.textContent=window.ETE_I18N.t("character.pet.join",{parts:parts.join("，")});'
+}
+for old,new in pet_replacements.items():
+    assert s.count(old)==1, "Pet preview source changed: "+old
+    s=s.replace(old,new,1)
 # Keep this registry independent of the saved CharacterDraft.
 payload=json.dumps(messages,ensure_ascii=False,separators=(",",":"))
 # Attach compatibility accessors after the core runtime has created ETE_I18N.
