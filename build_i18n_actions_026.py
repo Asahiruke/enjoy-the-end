@@ -7,13 +7,13 @@ end=s.index("/* ---------- NPC autonomy:",start)
 block=s[start:end]
 messages={}
 # Only migrate literal action lifecycle messages in the authoritative registry.
-pattern=re.compile(r"(instant|span)\\('([^']+)',[^;\\n]*?\\);")
+pattern=re.compile(r"(instant|span)\('([^']+)',[^;\n]*?\);")
 # Match single-quoted Chinese literals in action declarations, retaining callback expressions.
-for kind,ident in re.findall(r"(instant|span)\\('([^']+)'",block):
-    line=re.search(r"(?m)^.*?"+kind+r"\\('"+re.escape(ident)+r"'.*$",block)
+for kind,ident in re.findall(r"(instant|span)\('([^']+)'",block):
+    line=re.search(r"(?m)^.*?"+kind+r"\('"+re.escape(ident)+r"'.*$",block)
     if not line: continue
     original=line.group(0)
-    values=re.findall(r"'([^'\\n]*[\\u3400-\\u9fff][^'\\n]*)'",original)
+    values=re.findall(r"'([^'\n]*[\u3400-\u9fff][^'\n]*)'",original)
     for index,value in enumerate(values):
         key=f"action.{ident}."+("complete" if kind=="instant" else ("start" if index==0 else "end"))
         messages[key]=value
