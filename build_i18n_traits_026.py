@@ -38,7 +38,7 @@ appearance_messages={
  "character.appearance.summary":"{name}的外表气质偏{gender}，{height}，{build}。留着{hairColor}的{hairLength}，{eyeColor}的{eyes}，肤色{skinTone}。"
 }
 messages.update(appearance_messages)
-appearance_re=re.compile(r'function appearanceText\\(c\\)\\s*\\{.*?\\n\\}',re.S)
+appearance_re=re.compile('function appearanceText' + re.escape('(c)') + '[\\s\\S]*?' + re.escape('\n}'))
 appearance_new="""function appearanceText(c){
  const a=c.appearance;
  const t=(key,vars)=>window.ETE_I18N?.t(key,vars)??key;
