@@ -28,6 +28,33 @@ summary_labels={"姓名":"character.summary.name","年龄":"character.summary.ag
 # The summary is a presentation function; replace literal label segments only when present.
 for label,key in summary_labels.items():
     messages[key]=label
+# The appearance summary is display-only; preserve the underlying appearance values.
+appearance_messages={
+ "character.appearance.height.short":"个子偏矮","character.appearance.height.medium":"身高适中","character.appearance.height.tall":"个子偏高",
+ "character.appearance.build.slim":"身形偏纤细","character.appearance.build.average":"身形匀称","character.appearance.build.strong":"体格显得结实",
+ "character.appearance.eyes.soft":"眼神显得柔和","character.appearance.eyes.sharp":"目光显得锐利",
+ "character.appearance.eyes.tired":"眼睛看起来有些困倦","character.appearance.eyes.calm":"目光显得平静",
+ "character.appearance.eyes.other":"眼睛显得{shape}",
+ "character.appearance.summary":"{name}的外表气质偏{gender}，{height}，{build}。留着{hairColor}的{hairLength}，{eyeColor}的{eyes}，肤色{skinTone}。"
+}
+messages.update(appearance_messages)
+appearance_re=re.compile(r'function appearanceText\\(c\\)\\s*\\{.*?\\n\\}',re.S)
+appearance_new="""function appearanceText(c){
+ const a=c.appearance;
+ const t=(key,vars)=>window.ETE_I18N?.t(key,vars)??key;
+ const height=({'偏矮':'short','中等':'medium','偏高':'tall'}[a.height]);
+ const build=({'纤细':'slim','匀称':'average','壮实':'strong'}[a.weight]);
+ const eyes=({'柔和':'soft','锐利':'sharp','略显困倦':'tired','平静':'calm'}[a.eyeShape]);
+ return t('character.appearance.summary',{
+  name:c.name,gender:a.gender,height:height?t('character.appearance.height.'+height):a.height,
+  build:build?t('character.appearance.build.'+build):a.weight,
+  hairColor:a.hairColor,hairLength:a.hairLength,eyeColor:a.eyeColor,
+  eyes:eyes?t('character.appearance.eyes.'+eyes):t('character.appearance.eyes.other',{shape:a.eyeShape}),
+  skinTone:a.skinTone
+ });
+}"""
+s,n=appearance_re.subn(lambda _:appearance_new,s,count=1)
+assert n==1,"Appearance summary function not found"
 # Keep this registry independent of the saved CharacterDraft.
 payload=json.dumps(messages,ensure_ascii=False,separators=(",",":"))
 # Attach compatibility accessors after the core runtime has created ETE_I18N.
