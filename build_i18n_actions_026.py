@@ -20,6 +20,16 @@ for kind,ident in re.findall(r"(instant|span)\('([^']+)'",block):
         original=original.replace("'"+value+"'","'"+key+"'",1)
     block=block[:line.start()]+original+block[line.end():]
 assert len(messages)>=35, len(messages)
+# Localize action validation failures in the same authoritative action layer.
+validation={
+ "没有水。":"action.error.no_water","缺少吐司或鸡蛋。":"action.error.breakfast_missing",
+ "家里没有方便面。":"action.error.no_instant_noodles","钱不够。":"action.error.not_enough_money",
+ "猫现在不在你伸手就能够到的位置。":"action.error.pet_out_of_reach"
+}
+for value,key in validation.items():
+    assert block.count("'"+value+"'")==1, "Validation source changed: "+value
+    messages[key]=value
+    block=block.replace("'"+value+"'","window.ETE_I18N.t('"+key+"')",1)
 # Message resolution happens at log emission, not when the registry is constructed.
 old="return typeof v==='function'?v(ctx,a):v"
 assert block.count(old)==1
