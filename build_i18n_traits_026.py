@@ -23,6 +23,12 @@ trait_ids=set(re.findall(r'\bid:"([^"]+)"',block))
 expected={f"trait.{ident}.{field}" for ident in trait_ids for field in ("name","desc")}
 assert set(messages)==expected, f"Missing: {sorted(expected-set(messages))}; unexpected: {sorted(set(messages)-expected)}"
 s=s[:start]+block2+s[end:]
+# Localize the existing appearance summary's fixed labels without changing character data.
+summary_labels={"姓名":"character.summary.name","年龄":"character.summary.age","性别":"character.summary.gender","身高":"character.summary.height","体重":"character.summary.weight"}
+# The summary is a presentation function; replace literal label segments only when present.
+for label,key in summary_labels.items():
+    messages[key]=label
+# Keep this registry independent of the saved CharacterDraft.
 payload=json.dumps(messages,ensure_ascii=False,separators=(",",":"))
 # Attach compatibility accessors after the core runtime has created ETE_I18N.
 runtime=f"""
