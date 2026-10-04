@@ -10,7 +10,7 @@ messages={}
 pattern=re.compile(r"(instant|span)\('([^']+)',[^;\n]*?\);")
 # Match single-quoted Chinese literals in action declarations, retaining callback expressions.
 for kind,ident in re.findall(r"(instant|span)\('([^']+)'",block):
-    line=re.search(r"(?m)^.*?"+kind+r"\('"+re.escape(ident)+r"'.*$",block)
+    line=re.search(r"(?<![A-Za-z_])"+kind+r"\('"+re.escape(ident)+r"'[^;\n]*?\);",block)
     if not line: continue
     original=line.group(0)
     values=re.findall(r"'([^'\n]*[\u3400-\u9fff][^'\n]*)'",original)
@@ -20,6 +20,8 @@ for kind,ident in re.findall(r"(instant|span)\('([^']+)'",block):
         original=original.replace("'"+value+"'","'"+key+"'",1)
     block=block[:line.start()]+original+block[line.end():]
 assert len(messages)>=35, len(messages)
+assert messages.get("action.sit_down.complete")=="你坐了下来。", "Sit-down log corrupted"
+assert messages.get("action.stand_up.complete")=="你站起身。", "Stand-up log corrupted"
 # Localize action validation failures in the same authoritative action layer.
 validation={
  "没有水。":"action.error.no_water","缺少吐司或鸡蛋。":"action.error.breakfast_missing",
