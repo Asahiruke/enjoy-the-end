@@ -19,6 +19,9 @@ for kind,ident in re.findall(r"(instant|span)\('([^']+)'",block):
         messages[key]=value
         original=original.replace("'"+value+"'","'"+key+"'",1)
     block=block[:line.start()]+original+block[line.end():]
+# Every literal lifecycle phrase must be extracted, including adjacent declarations.
+assert "你坐了下来。" not in block and "你站起身。" not in block, "Unmigrated posture log"
+assert len([k for k in messages if k.endswith(".complete")])>=5, "Missing instant action logs"
 assert len(messages)>=35, len(messages)
 assert messages.get("action.sit_down.complete")=="你坐了下来。", "Sit-down log corrupted"
 assert messages.get("action.stand_up.complete")=="你站起身。", "Stand-up log corrupted"
