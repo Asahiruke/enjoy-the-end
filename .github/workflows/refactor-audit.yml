@@ -129,6 +129,23 @@ jobs:
             }));
             console.log('runtime='+JSON.stringify(state));
             if(!state.hasDraft||state.pending!=='undefined'||!state.hasAction||!state.hasTime||!state.hasNPC)errors.push('core runtime invariant failed');
+            const localeAudit=await page.evaluate(()=>{
+              const I=window.ETE_I18N,A=window.ETE_ACTIONS;
+              const expected={sit_down:'你坐了下来。',stand_up:'你站起身。',room_move:'你去了另一个房间。'};
+              const problems=[];
+              for(const [id,phrase] of Object.entries(expected)){
+                const key=A.defs[id]?.complete;
+                if(key!=='action.'+id+'.complete'||I.t(key)!==phrase)problems.push(id+': '+key+' -> '+I.t(key));
+              }
+              const original=I.locale;
+              I.messages['en-test']={'action.sit_down.complete':'You sit down.'};
+              I.locale='en-test';
+              if(I.t(A.defs.sit_down.complete)!=='You sit down.')problems.push('runtime locale switch failed');
+              I.locale=original;delete I.messages['en-test'];
+              return problems;
+            });
+            if(localeAudit.length)errors.push('action localization: '+localeAudit.join('; '));
+
             if(errors.length){console.error(errors.join('\n'));await browser.close();process.exit(1)}
             await page.screenshot({path:'/tmp/ete-smoke.png',fullPage:true});
             await browser.close();
