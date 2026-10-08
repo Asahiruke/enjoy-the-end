@@ -35,6 +35,10 @@ for value,key in validation.items():
     assert block.count("'"+value+"'")==1, "Validation source changed: "+value
     messages[key]=value
     block=block.replace("'"+value+"'","window.ETE_I18N.t('"+key+"')",1)
+# Localize the fallback pet display name; this is presentation, not the NPC id.
+assert block.count(":'猫';")==1, "Pet fallback source changed"
+messages["action.pet_animal.fallback_name"]="猫"
+block=block.replace(":'猫';",":window.ETE_I18N.t('action.pet_animal.fallback_name');",1)
 # Localize the dynamic pet interaction log without changing NPC identity/state.
 pet_templates={
  "head":"你伸手摸了摸{name}的额头和耳后。它微微眯起了眼睛。",
