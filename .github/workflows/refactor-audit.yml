@@ -27,6 +27,7 @@ jobs:
           python3 build_i18n_026.py
           python3 build_i18n_traits_026.py
           python3 build_i18n_actions_026.py
+          python3 build_i18n_items_026.py
       - name: Localization inventory
         shell: bash
         run: python3 i18n_audit.py
