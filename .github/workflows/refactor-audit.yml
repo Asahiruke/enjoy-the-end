@@ -28,6 +28,22 @@ jobs:
           python3 build_i18n_traits_026.py
           python3 build_i18n_actions_026.py
           python3 build_i18n_items_026.py
+          python3 - <<'PY'
+          import re, pathlib
+          s=pathlib.Path('dist/index.html').read_text(encoding='utf-8')
+          print('=== item/container source discovery ===')
+          pats=[
+            r'.{0,180}方便面.{0,260}',
+            r'.{0,120}(?:ITEMS|items)\s*=.{0,500}',
+            r'.{0,120}(?:CONTAINERS|containers)\s*=.{0,500}',
+            r'.{0,120}itemId.{0,260}',
+            r'.{0,120}cupboard1.{0,260}',
+          ]
+          for pat in pats:
+            hits=re.findall(pat,s,re.S)
+            print('PATTERN',pat,'HITS',len(hits))
+            for h in hits[:12]: print(h.replace('\n',' ')[:900])
+          PY
       - name: Localization inventory
         shell: bash
         run: python3 i18n_audit.py
