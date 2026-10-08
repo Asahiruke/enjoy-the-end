@@ -5,7 +5,7 @@ s=p.read_text(encoding="utf-8")
 messages={}
 # Item/container registries use stable IDs; only their display labels are localized.
 for registry,prefix in (("ITEMS","item"),("CONTAINERS","container")):
-    m=re.search(r"(?:const|let|var)\\s+"+registry+r"\\s*=\\s*\\{",s)
+    m=re.search(r"(?:const|let|var)\s+"+registry+r"\s*=\s*\{",s)
     if not m: continue
     start=m.start(); depth=0; end=None
     for i in range(m.end()-1,len(s)):
@@ -16,7 +16,7 @@ for registry,prefix in (("ITEMS","item"),("CONTAINERS","container")):
     assert end
     block=s[start:end]
     for field in ("name","label","desc","description"):
-        pat=re.compile(r"("+field+r"\\s*:\\s*)['\x22]([^'\x22\\n]*[\\u3400-\\u9fff][^'\x22\\n]*)['\x22]")
+        pat=re.compile(r"("+field+r"\\s*:\\s*)['\x22]([^'\x22\n]*[\u3400-\u9fff][^'\x22\\n]*)['\x22]")
         n=0
         def repl(x):
             nonlocal_n=None
