@@ -43,6 +43,6 @@ window.ETE_CONTAINER_NAME=(obj)=>{
 # Container labels are used via contById(...).name and local container objects.
 # Do not mutate persisted container names here; follow-up UI render migration will
 # use ETE_CONTAINER_NAME in the relevant rendering sites.
-s=s.replace("</body>",runtime+"\n</body>",1)
+anchor='<script id="ete-026-actions-i18n">'\npos=s.find(anchor)\nassert pos>=0, "actions i18n runtime missing"\n# Install item translations before the action runtime / DOMContentLoaded localization runs.\ns=s[:pos]+runtime+"\\n"+s[pos:]
 p.write_text(s,encoding="utf-8")
 print("items_i18n_messages="+str(len(messages))+" item_names="+str(len(entries))+" containers="+str(len(containers)))
