@@ -51,10 +51,13 @@ for style,value in pet_templates.items():
     block=block.replace(old,"window.ETE_I18N.t('"+key+"',{name:n})",1)
 # Fail this stage if user-facing CJK literals remain in the authoritative Action layer.
 # Exclude internal exception text and comments; those are developer-facing diagnostics.
-audit_block=re.sub(r"throw new Error\\([^\\n]*", "", block)
-audit_block=re.sub(r"//[^\\n]*", "", audit_block)
-residual=re.findall(r"(['\x22\x60])([^'\x22\x60\\n]*[\\u3400-\\u9fff][^'\x22\x60\\n]*)\\1",audit_block)
-assert not residual, "Unmigrated Action user text: "+repr([x[1] for x in residual[:12]])
+audit_block=block
+residual=[]
+for quote in ("'",chr(34),chr(96)):
+    for value in re.findall(re.escape(quote)+r"([^\\n]*?)"+re.escape(quote),audit_block):
+        if re.search(r"[\u3400-\u9fff]",value) and "Unknown action" not in value:
+            residual.append(value)
+assert not residual, "Unmigrated Action user text: "+repr(residual[:12])
 # Message resolution happens at log emission, not when the registry is constructed.
 old="return typeof v==='function'?v(ctx,a):v"
 assert block.count(old)==1
